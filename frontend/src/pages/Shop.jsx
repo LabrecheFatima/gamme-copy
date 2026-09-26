@@ -11,10 +11,8 @@ export default function Shop() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ÉTAT DU TIROIR DE FILTRES EN MOBILE
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // FILTRES
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [priceRange, setPriceRange] = useState(20000);
@@ -26,8 +24,8 @@ export default function Shop() {
       try {
         setLoading(true);
         const [productsRes, categoriesRes] = await Promise.all([
-          axios.get(`${API_URL}/api/products`),
-          axios.get(`${API_URL}/api/categories`).catch(() => ({ data: [] }))
+          axios.get(`${API_URL}/products`),
+          axios.get(`${API_URL}/categories`).catch(() => ({ data: [] }))
         ]);
         
         const prods = productsRes.data.data || productsRes.data || [];
@@ -87,13 +85,12 @@ export default function Shop() {
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return '/placeholder.png';
     if (imageUrl.startsWith('http')) return imageUrl;
-    return `${API_URL}/uploads/${imageUrl}`;
+    const baseUrl = API_URL.replace('/api', '');
+    return `${baseUrl}/uploads/${imageUrl}`;
   };
 
-  // COMPOSANT CONTENU DES FILTRES (RÉUTILISÉ DANS DESKTOP ET MOBILE)
   const FilterContent = () => (
     <div className="space-y-6">
-      {/* Recherche & Tri */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
         <div className="md:col-span-8 relative">
           <span className="text-[10px] uppercase tracking-widest text-stone-400 block mb-1.5 font-medium">Recherche</span>
@@ -129,7 +126,6 @@ export default function Shop() {
 
       <div className="border-t border-stone-100 my-2" />
 
-      {/* Budget Max & Reset */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
         <div className="md:col-span-8">
           <div className="flex justify-between items-center mb-2">
@@ -159,7 +155,6 @@ export default function Shop() {
         </div>
       </div>
 
-      {/* Catégories */}
       <div>
         <span className="text-[10px] uppercase tracking-widest text-stone-400 block mb-2.5 font-medium">Catégories</span>
         <div className="flex flex-wrap md:flex-nowrap items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -197,8 +192,6 @@ export default function Shop() {
   return (
     <div className="w-full min-h-screen bg-[#FBF9F5] pt-24 md:pt-28 pb-24 font-sans text-stone-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12">
-        
-        {/* En-tête */}
         <div className="text-center max-w-2xl mx-auto mb-8 md:mb-12">
           <span className="text-[10px] md:text-[11px] font-medium uppercase tracking-[0.2em] text-stone-400 block mb-2 md:mb-3">
             Exploration
@@ -211,7 +204,6 @@ export default function Shop() {
           </p>
         </div>
 
-        {/* --- BARRE COMPACTE EN MOBILE --- */}
         <div className="md:hidden mb-6 flex items-center gap-3">
           <div className="relative flex-1">
             <input
@@ -237,16 +229,13 @@ export default function Shop() {
           </button>
         </div>
 
-        {/* --- FILTRES SUR DESKTOP (caché sur mobile) --- */}
         <div className="hidden md:block bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-stone-200/60 shadow-xs mb-12">
           <FilterContent />
         </div>
 
-        {/* --- MODAL / DRAWER DE FILTRES POUR MOBILE --- */}
         <AnimatePresence>
           {isMobileFilterOpen && (
             <div className="fixed inset-0 z-50 md:hidden flex justify-end">
-              {/* Backdrop flouté */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -255,7 +244,6 @@ export default function Shop() {
                 className="absolute inset-0 bg-stone-900/40 backdrop-blur-xs"
               />
 
-              {/* Panel glissant vers le haut / côté */}
               <motion.div
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
@@ -292,14 +280,12 @@ export default function Shop() {
           )}
         </AnimatePresence>
 
-        {/* Compteur */}
         <div className="mb-6 px-1 flex items-center justify-between">
           <p className="text-xs text-stone-400 tracking-wide">
             <span className="font-medium text-stone-800">{filteredProducts.length}</span> produit(s) disponible(s)
           </p>
         </div>
 
-        {/* GRILLE PRODUITS */}
         {loading ? (
           <div className="text-center py-24 text-stone-400 font-light text-xs tracking-widest uppercase">
             Chargement de la collection...
