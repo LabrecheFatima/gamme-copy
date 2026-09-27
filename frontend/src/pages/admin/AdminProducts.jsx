@@ -25,9 +25,11 @@ export default function AdminProducts() {
   // États pour la modal de création / édition
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+
+  // Gestion de plusieurs images
+  const [imageFiles, setImageFiles] = useState([]); // Nouveaux fichiers à uploader
+  const [existingImages, setExistingImages] = useState([]); // URL des images déjà existantes
+  const [imagesToDelete, setImagesToDelete] = useState([]); // Images existantes marquées pour suppression
 
   // État pour la modal de confirmation de suppression
   const [deletingProduct, setDeletingProduct] = useState(null);
@@ -38,6 +40,8 @@ export default function AdminProducts() {
     slug: '',
     category_id: '',
     description: '',
+    composition: '',         
+    conseil_utilisation: '',
     original_price: '',
     promo_price: '',
     stock_quantity: '',
@@ -88,14 +92,16 @@ export default function AdminProducts() {
   // Ouvrir modal pour ajout
   const handleOpenAddModal = () => {
     setEditingProduct(null);
-    setImageFile(null);
-    setImagePreview(null);
-    setRemoveExistingImage(false);
+    setImageFiles([]);
+    setExistingImages([]);
+    setImagesToDelete([]);
     setFormData({
       name: '',
       slug: '',
       category_id: '',
       description: '',
+      composition: '',         
+      conseil_utilisation: '',
       original_price: '',
       promo_price: '',
       stock_quantity: '10',
@@ -107,14 +113,24 @@ export default function AdminProducts() {
   // Ouvrir modal pour édition
   const handleOpenEditModal = (product) => {
     setEditingProduct(product);
-    setImageFile(null);
-    setRemoveExistingImage(false);
-    setImagePreview(product.image_url ? `${api.defaults.baseURL.replace('/api', '')}${product.image_url}` : null);
+    setImageFiles([]);
+    setImagesToDelete([]);
+
+    // Extraire les images existantes (soit product.images s'il s'agit d'un tableau, soit product.image_url)
+    const imgs = product.images 
+      ? product.images 
+      : product.image_url 
+        ? [product.image_url] 
+        : [];
+    setExistingImages(imgs);
+
     setFormData({
       name: product.name || '',
       slug: product.slug || '',
       category_id: product.category_id || '',
       description: product.description || '',
+      composition: product.composition || '',                  
+      conseil_utilisation: product.conseil_utilisation || '',
       original_price: product.original_price || '',
       promo_price: product.promo_price ?? '',
       stock_quantity: product.stock_quantity ?? 0,
@@ -123,21 +139,23 @@ export default function AdminProducts() {
     setIsModalOpen(true);
   };
 
-  // Sélection d'une nouvelle image
+  // Sélection de plusieurs nouvelles images
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-      setRemoveExistingImage(false);
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setImageFiles(prev => [...prev, ...files]);
     }
   };
 
-  // Supprimer / Retirer l'image
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    setRemoveExistingImage(true);
+  // Retirer un nouveau fichier sélectionné
+  const handleRemoveNewImage = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Retirer une image existante du serveur
+  const handleRemoveExistingImage = (imageUrl) => {
+    setExistingImages(prev => prev.filter(img => img !== imageUrl));
+    setImagesToDelete(prev => [...prev, imageUrl]);
   };
 
   // Enregistrement (Création ou Modification)
@@ -149,15 +167,21 @@ export default function AdminProducts() {
     data.append('slug', formData.slug);
     data.append('category_id', formData.category_id);
     data.append('description', formData.description);
+    data.append('composition', formData.composition);
+    data.append('conseil_utilisation', formData.conseil_utilisation);
     data.append('original_price', formData.original_price);
     data.append('promo_price', formData.promo_price ? formData.promo_price : '');
     data.append('stock_quantity', formData.stock_quantity);
     data.append('is_active', formData.is_active);
 
-    if (imageFile) {
-      data.append('image', imageFile);
-    } else if (removeExistingImage) {
-      data.append('delete_image', 'true');
+    // Ajout de chaque nouvelle image sous le champ 'images' ou 'images[]'
+    imageFiles.forEach((file) => {
+      data.append('images', file);
+    });
+
+    // Envoi des images à supprimer si nécessaire
+    if (imagesToDelete.length > 0) {
+      data.append('delete_images', JSON.stringify(imagesToDelete));
     }
 
     try {
@@ -178,7 +202,7 @@ export default function AdminProducts() {
     }
   };
 
-  // Confirmer l'exécution de la suppression
+  // Confirmer la suppression
   const handleConfirmDelete = async () => {
     if (!deletingProduct) return;
     
@@ -258,83 +282,86 @@ export default function AdminProducts() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 text-sm">
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-stone-50/50 transition-colors">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center">
-                          {product.image_url ? (
-                            <img
-                              src={`${api.defaults.baseURL.replace('/api', '')}${product.image_url}`}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Package size={20} className="text-stone-400" />
-                          )}
+                {filteredProducts.map((product) => {
+                  const mainImage = product.image_url || (product.images && product.images[0]);
+                  return (
+                    <tr key={product.id} className="hover:bg-stone-50/50 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center">
+                            {mainImage ? (
+                              <img
+                                src={`${api.defaults.baseURL.replace('/api', '')}${mainImage}`}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Package size={20} className="text-stone-400" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-stone-900">{product.name}</p>
+                            <p className="text-xs text-stone-400 font-mono">{product.slug}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-stone-900">{product.name}</p>
-                          <p className="text-xs text-stone-400 font-mono">{product.slug}</p>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="py-4 px-6">
-                      {product.promo_price ? (
-                        <div>
-                          <span className="font-semibold text-emerald-700">{product.promo_price} DA</span>
-                          <span className="text-xs text-stone-400 line-through ml-2">{product.original_price} DA</span>
-                        </div>
-                      ) : (
-                        <span className="font-semibold text-stone-900">{product.original_price} DA</span>
-                      )}
-                    </td>
+                      <td className="py-4 px-6">
+                        {product.promo_price ? (
+                          <div>
+                            <span className="font-semibold text-emerald-700">{product.promo_price} DA</span>
+                            <span className="text-xs text-stone-400 line-through ml-2">{product.original_price} DA</span>
+                          </div>
+                        ) : (
+                          <span className="font-semibold text-stone-900">{product.original_price} DA</span>
+                        )}
+                      </td>
 
-                    <td className="py-4 px-6">
-                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${
-                        product.stock_quantity > 5 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : product.stock_quantity > 0 
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}>
-                        {product.stock_quantity} en stock
-                      </span>
-                    </td>
-
-                    <td className="py-4 px-6">
-                      {product.is_active ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-                          <Eye size={14} /> Actif
+                      <td className="py-4 px-6">
+                        <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${
+                          product.stock_quantity > 5 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                            : product.stock_quantity > 0 
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}>
+                          {product.stock_quantity} en stock
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-stone-400">
-                          <EyeOff size={14} /> Masqué
-                        </span>
-                      )}
-                    </td>
+                      </td>
 
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleOpenEditModal(product)}
-                          className="p-2 text-stone-600 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
-                          title="Modifier"
-                        >
-                          <Edit3 size={16} />
-                        </button>
-                        <button
-                          onClick={() => setDeletingProduct(product)}
-                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Supprimer"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="py-4 px-6">
+                        {product.is_active ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                            <Eye size={14} /> Actif
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-stone-400">
+                            <EyeOff size={14} /> Masqué
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenEditModal(product)}
+                            className="p-2 text-stone-600 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                            title="Modifier"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                          <button
+                            onClick={() => setDeletingProduct(product)}
+                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -388,9 +415,11 @@ export default function AdminProducts() {
 
       {/* Modal Formulaire (Ajout / Édition) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden border border-stone-200 my-8">
-            <div className="flex items-center justify-between p-6 border-b border-stone-200">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs overflow-y-auto p-4 flex justify-center items-start sm:items-center">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-stone-200 my-8 flex flex-col max-h-[90vh]">
+            
+            {/* En-tête Modal */}
+            <div className="flex items-center justify-between p-6 border-b border-stone-200 bg-white rounded-t-2xl shrink-0">
               <h3 className="text-lg font-serif text-stone-900">
                 {editingProduct ? 'Modifier le Produit' : 'Ajouter un Produit'}
               </h3>
@@ -402,7 +431,9 @@ export default function AdminProducts() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {/* Formulaire défilable */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+              
               {/* Nom & Slug */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -492,41 +523,89 @@ export default function AdminProducts() {
                 />
               </div>
 
-              {/* Upload Image + Suppression */}
+              {/* Composition */}
               <div>
-                <label className="block text-xs font-medium text-stone-700 mb-1">Image du Produit</label>
-                <div className="flex items-center gap-4">
-                  {imagePreview ? (
-                    <div className="relative group shrink-0">
+                <label className="block text-xs font-medium text-stone-700 mb-1">Composition / Ingrédients</label>
+                <textarea
+                  value={formData.composition}
+                  onChange={(e) => setFormData({ ...formData, composition: e.target.value })}
+                  rows={2}
+                  placeholder="Ex: Aqua, Glycerin, Huile d'Argan..."
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900"
+                />
+              </div>
+
+              {/* Conseils d'utilisation */}
+              <div>
+                <label className="block text-xs font-medium text-stone-700 mb-1">Conseils d'utilisation</label>
+                <textarea
+                  value={formData.conseil_utilisation}
+                  onChange={(e) => setFormData({ ...formData, conseil_utilisation: e.target.value })}
+                  rows={2}
+                  placeholder="Ex: Appliquer quotidiennement matin et soir sur une peau propre."
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900"
+                />
+              </div>
+
+              {/* Section Multi-Images */}
+              <div>
+                <label className="block text-xs font-medium text-stone-700 mb-1">
+                  Images du Produit (Galerie)
+                </label>
+                
+                {/* Zone de prévisualisation des images */}
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 mb-3">
+                  {/* Images déjà enregistrées sur le serveur */}
+                  {existingImages.map((imgUrl, idx) => (
+                    <div key={`existing-${idx}`} className="relative group aspect-square rounded-lg overflow-hidden border border-stone-200 bg-stone-50">
                       <img
-                        src={imagePreview}
-                        alt="Aperçu"
-                        className="w-16 h-16 rounded-lg object-cover border border-stone-200"
+                        src={`${api.defaults.baseURL.replace('/api', '')}${imgUrl}`}
+                        alt={`Existante ${idx}`}
+                        className="w-full h-full object-cover"
                       />
                       <button
                         type="button"
-                        onClick={handleRemoveImage}
-                        className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white p-1 rounded-full hover:bg-rose-700 transition-colors shadow-xs cursor-pointer"
-                        title="Supprimer l'image"
+                        onClick={() => handleRemoveExistingImage(imgUrl)}
+                        className="absolute top-1 right-1 bg-rose-600 text-white p-1 rounded-full hover:bg-rose-700 transition-colors shadow-xs cursor-pointer"
+                        title="Supprimer"
                       >
-                        <X size={12} />
+                        <X size={10} />
                       </button>
                     </div>
-                  ) : removeExistingImage ? (
-                    <span className="text-xs text-rose-600 italic">Image supprimée (le produit n'aura aucune image)</span>
-                  ) : null}
+                  ))}
 
-                  <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-stone-300 rounded-xl cursor-pointer hover:bg-stone-50 transition-colors text-xs text-stone-600 font-medium">
-                    <Upload size={16} />
-                    <span>{imageFile ? imageFile.name : 'Choisir une image WebP / PNG / JPG'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </label>
+                  {/* Nouvelles images ajoutées (non encore uploadées) */}
+                  {imageFiles.map((file, idx) => (
+                    <div key={`new-${idx}`} className="relative group aspect-square rounded-lg overflow-hidden border border-emerald-300 bg-emerald-50">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Nouvelle ${idx}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveNewImage(idx)}
+                        className="absolute top-1 right-1 bg-rose-600 text-white p-1 rounded-full hover:bg-rose-700 transition-colors shadow-xs cursor-pointer"
+                        title="Supprimer"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
+
+                {/* Bouton d'upload multiple */}
+                <label className="flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-stone-300 rounded-xl cursor-pointer hover:bg-stone-50 transition-colors text-xs text-stone-600 font-medium">
+                  <Upload size={16} />
+                  <span>Ajouter une ou plusieurs images (WebP / PNG / JPG)</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               {/* Statut Visibilité */}
@@ -544,7 +623,7 @@ export default function AdminProducts() {
               </div>
 
               {/* Boutons d'action */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-stone-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-stone-100 bg-white sticky bottom-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}

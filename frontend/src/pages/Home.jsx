@@ -13,13 +13,15 @@ export default function HomeHero() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Récupération dynamique des produits depuis le backend
+  // Normalisation de l'URL racine pour les images static (/uploads)
+  const serverBaseUrl = API_URL.replace(/\/api\/?$/, '');
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(`${API_URL}/api/products`);
-        // On prend les 4 premiers produits pour la section Best Sellers de l'accueil
-        const data = response.data.data || response.data;
+        // Correctif route API (/products direct)
+        const response = await axios.get(`${API_URL}/products`);
+        const data = response.data.data || response.data || [];
         setProducts(data.slice(0, 4));
       } catch (error) {
         console.error("Erreur lors du chargement des produits :", error);
@@ -54,11 +56,12 @@ export default function HomeHero() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   };
 
-  // Helper pour afficher l'image du produit (locale ou distante)
+  // Helper corrigé pour traiter le préfixe /uploads/ sans doublon
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return '/placeholder.png';
     if (imageUrl.startsWith('http')) return imageUrl;
-    return `${API_URL}/uploads/${imageUrl}`;
+    const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+    return `${serverBaseUrl}${cleanPath}`;
   };
 
   return (
@@ -124,7 +127,7 @@ export default function HomeHero() {
             <div className="hidden md:flex gap-3">
               <button 
                 onClick={() => scroll('left')}
-                className="w-12 h-12 border border-stone-300 flex items-center justify-center hover:border-stone-900 transition-colors"
+                className="w-12 h-12 border border-stone-300 flex items-center justify-center hover:border-stone-900 transition-colors cursor-pointer"
                 aria-label="Précédent"
               >
                 <svg className="w-5 h-5 text-stone-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +136,7 @@ export default function HomeHero() {
               </button>
               <button 
                 onClick={() => scroll('right')}
-                className="w-12 h-12 bg-stone-900 text-white flex items-center justify-center hover:bg-stone-800 transition-opacity"
+                className="w-12 h-12 bg-stone-900 text-white flex items-center justify-center hover:bg-stone-800 transition-opacity cursor-pointer"
                 aria-label="Suivant"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,7 +171,7 @@ export default function HomeHero() {
                       <span className="bg-stone-100 px-3 py-1 text-[11px] tracking-wider uppercase text-stone-800 border border-stone-200 font-medium">
                         {product.has_promo ? 'PROMO' : 'Nouveauté'}
                       </span>
-                      <button className="w-8 h-8 bg-stone-900 text-white rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-sm">
+                      <button className="w-8 h-8 bg-stone-900 text-white rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-sm cursor-pointer">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                         </svg>

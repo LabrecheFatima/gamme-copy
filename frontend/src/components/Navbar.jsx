@@ -10,19 +10,26 @@ export default function Navbar({ cartCount: propCartCount = 0 }) {
   const [isDesktopDropdownOpen, setIsDesktopDropdownOpen] = useState(false);
   const [categories, setCategories] = useState([]);
 
-  // Utilisation du panier dynamique depuis CartContext
+  // Récupération dynamique du nombre d'articles du panier
   const cartState = useCart();
   const totalItems = cartState?.totalItems ?? propCartCount;
 
-  // Récupération des catégories définies par l'admin
+  // Récupération des catégories créées depuis l'administration
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await axios.get(`${API_URL}/api/categories`);
-        const data = res.data.data || res.data || [];
-        setCategories(data);
+        const data = res.data?.data || res.data || [];
+        setCategories(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Erreur de chargement des catégories dans la navbar :", error);
+        // En cas de différence de préfixe de route backend, essai du chemin direct /categories
+        try {
+          const fallbackRes = await axios.get(`${API_URL}/categories`);
+          const fallbackData = fallbackRes.data?.data || fallbackRes.data || [];
+          setCategories(Array.isArray(fallbackData) ? fallbackData : []);
+        } catch (fallbackError) {
+          console.error("Erreur de chargement des catégories dans la barre de navigation :", fallbackError);
+        }
       }
     };
 
@@ -33,32 +40,53 @@ export default function Navbar({ cartCount: propCartCount = 0 }) {
     <header className="fixed top-0 left-0 w-full z-50 bg-stone-900/80 backdrop-blur-md border-b border-white/10 text-white transition-all duration-300">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-12 py-4 text-sm tracking-wide">
         
-        {/* Liens Nav Gauche (Desktop) */}
+        {/* Navigation Gauche (Desktop) */}
         <nav className="hidden md:flex items-center space-x-8 font-light text-stone-200">
-          <Link to="/" className="hover:text-white transition-colors">Accueil</Link>
-          <Link to="/shop" className="hover:text-white transition-colors">Shop</Link>
+          <Link to="/" className="hover:text-white transition-colors">
+            Accueil
+          </Link>
+          <Link to="/shop" className="hover:text-white transition-colors">
+            Boutique
+          </Link>
 
-          {/* Menu Déroulant Catégories (Desktop) */}
+          {/* Menu Déroulant des Catégories (Desktop) */}
           {categories.length > 0 && (
             <div 
               className="relative"
               onMouseEnter={() => setIsDesktopDropdownOpen(true)}
               onMouseLeave={() => setIsDesktopDropdownOpen(false)}
             >
-              <button className="flex items-center gap-1.5 hover:text-white transition-colors py-2">
+              <button 
+                type="button" 
+                className="flex items-center gap-1.5 hover:text-white transition-colors py-2 cursor-pointer"
+              >
                 <span>Catégories</span>
-                <svg className={`w-3 h-3 text-stone-400 transition-transform ${isDesktopDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg 
+                  className={`w-3 h-3 text-stone-400 transition-transform duration-200 ${isDesktopDropdownOpen ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
+              {/* Sous-menu au survol */}
               {isDesktopDropdownOpen && (
-                <div className="absolute top-full left-0 w-52 bg-stone-900/95 border border-white/10 rounded-2xl shadow-xl py-3 my-1 backdrop-blur-lg">
+                <div className="absolute top-full left-0 w-56 bg-stone-900/95 border border-white/10 rounded-2xl shadow-xl py-2 my-1 backdrop-blur-lg animate-in fade-in zoom-in-95 duration-150">
+                  <Link
+                    to="/shop"
+                    className="block px-5 py-2 text-xs text-stone-400 hover:text-white hover:bg-white/10 transition-colors font-light border-b border-white/5 mb-1"
+                    onClick={() => setIsDesktopDropdownOpen(false)}
+                  >
+                    Toutes les catégories
+                  </Link>
                   {categories.map((cat) => (
                     <Link
                       key={cat.id || cat.slug}
-                      to={`/shop?category=${cat.id || cat.slug}`}
+                      to={`/shop?category=${cat.slug || cat.id}`}
                       className="block px-5 py-2 text-xs text-stone-300 hover:text-white hover:bg-white/10 transition-colors font-light"
+                      onClick={() => setIsDesktopDropdownOpen(false)}
                     >
                       {cat.name}
                     </Link>
@@ -69,11 +97,11 @@ export default function Navbar({ cartCount: propCartCount = 0 }) {
           )}
         </nav>
 
-        {/* Bouton Hamburger Mobile */}
+        {/* Bouton Menu Burger (Mobile) */}
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="md:hidden text-white focus:outline-none"
-          aria-label="Toggle menu"
+          className="md:hidden text-white focus:outline-none p-1"
+          aria-label="Toggle Menu"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isMobileMenuOpen ? (
@@ -84,20 +112,23 @@ export default function Navbar({ cartCount: propCartCount = 0 }) {
           </svg>
         </button>
 
-        {/* Logo Centré - Apoteca */}
+        {/* Logo / Nom du Site */}
         <Link to="/" className="text-xl md:text-2xl tracking-wider font-serif font-medium text-white">
           Apoteca-dz
         </Link>
 
-        {/* Actions Droite - Panier */}
+        {/* Panier (Droite) */}
         <div className="flex items-center font-light text-stone-200">
           <Link to="/checkout" className="hover:text-white transition-colors flex items-center gap-2">
-            Mon Panier <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-semibold text-white">({totalItems})</span>
+            <span>Mon Panier</span>
+            <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-semibold text-white">
+              ({totalItems})
+            </span>
           </Link>
         </div>
       </div>
 
-      {/* Menu Mobile Déroulant */}
+      {/* Menu Déroulant (Mobile) */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-stone-900/95 backdrop-blur-xl border-b border-white/10 px-8 py-6 flex flex-col space-y-4 text-stone-200 text-sm">
           <Link 
@@ -113,10 +144,10 @@ export default function Navbar({ cartCount: propCartCount = 0 }) {
             className="hover:text-white transition-colors py-1" 
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            Shop
+            Boutique
           </Link>
 
-          {/* Section Catégories pour Mobile */}
+          {/* Accordéon Catégories en Mobile */}
           {categories.length > 0 && (
             <div className="pt-2 border-t border-white/10">
               <button
@@ -124,18 +155,25 @@ export default function Navbar({ cartCount: propCartCount = 0 }) {
                 className="w-full flex items-center justify-between py-2 text-stone-300 font-light hover:text-white"
               >
                 <span>Catégories</span>
-                <svg className={`w-4 h-4 transition-transform ${isMobileCategoriesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-4 h-4 transition-transform duration-200 ${isMobileCategoriesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
-              {/* Sous-liste des catégories */}
+              {/* Sous-liste mobile */}
               {isMobileCategoriesOpen && (
                 <div className="pl-4 pt-2 space-y-3 pb-2 border-l border-white/10 my-1">
+                  <Link
+                    to="/shop"
+                    className="block text-xs text-stone-300 hover:text-white transition-colors font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    • Toutes les catégories
+                  </Link>
                   {categories.map((cat) => (
                     <Link
                       key={cat.id || cat.slug}
-                      to={`/shop?category=${cat.id || cat.slug}`}
+                      to={`/shop?category=${cat.slug || cat.id}`}
                       className="block text-xs text-stone-400 hover:text-white transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >

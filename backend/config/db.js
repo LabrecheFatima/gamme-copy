@@ -66,11 +66,33 @@ async function initDb() {
         table.string('name').notNullable();
         table.string('slug').notNullable().unique();
         table.text('description');
+        table.text('composition').nullable(); 
+        table.text('conseil_utilisation').nullable(); 
         table.decimal('original_price', 10, 2).notNullable();
         table.decimal('promo_price', 10, 2).nullable();
         table.integer('stock_quantity').notNullable().defaultTo(0);
         table.string('image_url').nullable();
         table.boolean('is_active').defaultTo(true);
+        table.timestamps(true, true);
+      });
+    } else {
+      // Ajout rétroactif si la table existe déjà
+      const hasComposition = await db.schema.hasColumn('products', 'composition');
+      if (!hasComposition) {
+        await db.schema.table('products', table => {
+          table.text('composition').nullable();
+          table.text('conseil_utilisation').nullable();
+        });
+      }
+    }
+
+    // Table Product Images (Galerie)
+    const hasProductImages = await db.schema.hasTable('product_images');
+    if (!hasProductImages) {
+      await db.schema.createTable('product_images', table => {
+        table.increments('id').primary();
+        table.integer('product_id').references('id').inTable('products').onDelete('CASCADE');
+        table.string('image_url').notNullable();
         table.timestamps(true, true);
       });
     }

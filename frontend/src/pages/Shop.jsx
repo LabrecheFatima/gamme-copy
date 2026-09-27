@@ -19,6 +19,9 @@ export default function Shop() {
   const [maxProductPrice, setMaxProductPrice] = useState(20000);
   const [sortBy, setSortBy] = useState('default');
 
+  // Déduction de la base d'URL du serveur pour servir les images (/uploads)
+  const serverBaseUrl = API_URL.replace(/\/api\/?$/, '');
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -50,6 +53,19 @@ export default function Shop() {
     fetchData();
   }, []);
 
+  const getImageUrl = (imageUrl) => {
+  if (!imageUrl) return '/placeholder.png';
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl;
+
+  // On extrait uniquement le nom du fichier (ex: "1790449229445.webp")
+  const filename = imageUrl.split('/').pop();
+
+  // On retire à la fois /api ET /uploads s'ils sont présents à la fin de API_URL
+  const cleanBaseUrl = API_URL.replace(/\/(api|uploads)\/?$/, '');
+
+  return `${cleanBaseUrl}/uploads/${filename}`;
+};
+
   const filteredProducts = useMemo(() => {
     return products
       .filter(product => {
@@ -80,13 +96,6 @@ export default function Shop() {
     setSelectedCategory('all');
     setPriceRange(maxProductPrice);
     setSortBy('default');
-  };
-
-  const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return '/placeholder.png';
-    if (imageUrl.startsWith('http')) return imageUrl;
-    const baseUrl = API_URL.replace('/api', '');
-    return `${baseUrl}/uploads/${imageUrl}`;
   };
 
   const FilterContent = () => (

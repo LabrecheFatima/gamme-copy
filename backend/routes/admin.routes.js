@@ -18,8 +18,8 @@ router.put('/categories/:id', auth, categoriesController.update);
 router.delete('/categories/:id', auth, categoriesController.delete);
 
 // Produits
-router.post('/products', auth, upload.single('image'), productsController.create);
-router.put('/products/:id', auth, upload.single('image'), productsController.update);
+router.post('/products', auth, upload.array('images', 10), productsController.create);
+router.put('/products/:id', auth, upload.array('images', 10), productsController.update);
 router.delete('/products/:id', auth, productsController.delete);
 
 // Commandes
