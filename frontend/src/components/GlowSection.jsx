@@ -87,7 +87,7 @@ export default function GlowSection() {
           className="mt-10 md:mt-14"
         >
           <a
-            href="/products" // Modifie le lien selon la route de ta boutique
+            href="/shop" // Modifie le lien selon la route de ta boutique
             className="inline-flex items-center gap-3 bg-neutral-900 text-white hover:bg-neutral-800 text-sm sm:text-base font-medium px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
           >
             <span>Voir nos produits</span>

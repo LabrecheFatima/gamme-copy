@@ -6,6 +6,7 @@ const categoriesController = require('../controllers/categories.controller');
 const productsController = require('../controllers/products.controller');
 const ordersController = require('../controllers/orders.controller');
 const shippingController = require('../controllers/shipping.controller');
+const packsController = require('../controllers/packs.controller');
 
 const auth = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
@@ -21,6 +22,13 @@ router.delete('/categories/:id', auth, categoriesController.delete);
 router.post('/products', auth, upload.array('images', 10), productsController.create);
 router.put('/products/:id', auth, upload.array('images', 10), productsController.update);
 router.delete('/products/:id', auth, productsController.delete);
+
+// Packs (Admin)
+router.get('/packs', auth, packsController.getAll);
+router.post('/packs', auth, upload.array('images', 10), packsController.create);
+router.put('/packs/:id', auth, upload.array('images', 10), packsController.update);
+router.delete('/packs/:id', auth, packsController.delete);
+router.get('/packs/:id', auth, packsController.getOne);
 
 // Commandes
 router.get('/orders', auth, ordersController.getAll);

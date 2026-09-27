@@ -68,7 +68,7 @@ export default function Checkout() {
     return `${cleanBaseUrl}/uploads/${fileName}`;
   };
 
-  // Calculates du Sous-total et du Total Global
+  // Calculs du Sous-total et du Total Global
   const subtotal = totalAmount || cart.reduce((sum, item) => {
     const p = Number(item.has_promo ? item.final_price : (item.promo_price ?? item.price ?? item.original_price ?? 0));
     const q = item.qty || item.quantity || 1;
@@ -289,7 +289,7 @@ export default function Checkout() {
                     {selectedShippingCost > 0 ? `${selectedShippingCost.toLocaleString()} DA` : 'Sélectionnez une wilaya'}
                   </span>
                 ) : (
-                  <span className="text-emerald-700 font-medium italic">Gratuite / Offerte</span>
+                  <span className="font-medium text-stone-800">0 DA</span>
                 )}
               </div>
 

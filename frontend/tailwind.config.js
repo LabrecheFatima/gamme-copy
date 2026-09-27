@@ -18,11 +18,19 @@ export default {
     extend: {
       colors: {
         apoteca: {
-          cream: '#FDFBF7',      // Vrai Crème / Off-white (fond principal)
-          charcoal: '#2D2D2A',   // Noir Charbon (titres et textes)
-          pink: '#C88880',       // Vieux Rose / Warm Pink (boutons et accents)
-          grey: '#CECECE',       // Gris doux (bordures)
-          beige: '#E8E5DF',      // Beige clair (fond des cartes et badges)
+          cream: '#FDFBF7',      // Fond principal[cite: 31]
+          charcoal: '#2B2A27',   // En-tête et titres[cite: 31]
+          pink: {
+            light: '#F6EAE7',    // Fond de la section Packs
+            DEFAULT: '#C88880',  // Boutons secondaires / Accents[cite: 31]
+            dark: '#A86C64',     // Hover
+          },
+          sage: {
+            light: '#EBF2EE',    // Fond de badges légers
+            DEFAULT: '#7A9A8B',  // Accent Fraîcheur / Botanique
+          },
+          terracotta: '#D48C70', // Prix promo / Badges d'urgence
+          grey: '#E5E2DC',       // Bordures douces
         },
       },
       fontFamily: {

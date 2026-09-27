@@ -97,6 +97,45 @@ async function initDb() {
       });
     }
 
+    // Table Packs
+    const hasPacks = await db.schema.hasTable('packs');
+    if (!hasPacks) {
+      await db.schema.createTable('packs', table => {
+        table.increments('id').primary();
+        table.string('name').notNullable();
+        table.string('slug').notNullable().unique();
+        table.text('description').nullable();
+        table.decimal('original_price', 10, 2).notNullable();
+        table.decimal('promo_price', 10, 2).nullable(); // Prix promotionnel du pack
+        table.integer('stock_quantity').notNullable().defaultTo(0);
+        table.string('image_url').nullable();
+        table.boolean('is_active').defaultTo(true);
+        table.timestamps(true, true);
+      });
+    }
+
+    // Table Pack Images (Galerie d'images du pack)
+    const hasPackImages = await db.schema.hasTable('pack_images');
+    if (!hasPackImages) {
+      await db.schema.createTable('pack_images', table => {
+        table.increments('id').primary();
+        table.integer('pack_id').references('id').inTable('packs').onDelete('CASCADE');
+        table.string('image_url').notNullable();
+        table.timestamps(true, true);
+      });
+    }
+
+    // Table de jonction Pack <-> Produits
+    const hasPackItems = await db.schema.hasTable('pack_items');
+    if (!hasPackItems) {
+      await db.schema.createTable('pack_items', table => {
+        table.increments('id').primary();
+        table.integer('pack_id').references('id').inTable('packs').onDelete('CASCADE');
+        table.integer('product_id').references('id').inTable('products').onDelete('CASCADE');
+        table.integer('quantity').notNullable().defaultTo(1);
+      });
+    }
+
     // 4. Table Settings (Toggle Livraison)
     const hasSettings = await db.schema.hasTable('settings');
     if (!hasSettings) {

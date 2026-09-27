@@ -6,6 +6,7 @@ import {
   Package, 
   FolderTree,
   Truck, 
+  Boxes,
   X, 
   Menu, 
   LogOut, 
@@ -18,24 +19,24 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Éléments de navigation du menu latéral
+  // Éléments de navigation du menu latéral (inclut la page des Packs)
   const navItems = [
     { label: 'Tableau de bord', path: '/admin', icon: LayoutDashboard },
     { label: 'Commandes', path: '/admin/orders', icon: ShoppingBag },
     { label: 'Produits', path: '/admin/products', icon: Package },
+    { label: 'Packs & Offres', path: '/admin/packs', icon: Boxes },
     { label: 'Catégories', path: '/admin/categories', icon: FolderTree },
     { label: 'Frais de livraison', path: '/admin/shipping', icon: Truck },
   ];
 
   const handleLogout = () => {
-    // Suppression du token de session et redirection vers la page login
     localStorage.removeItem('admin_token');
     navigate('/admin/login');
   };
 
   return (
     <div className="min-h-screen bg-stone-100 font-sans text-stone-900 flex">
-      {/* 1. Overlay mobile sombre lors de l'ouverture du menu */}
+      {/* 1. Overlay mobile sombre */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs lg:hidden"
@@ -72,7 +73,6 @@ export default function AdminLayout() {
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
-            // Vérification de la route active
             const isActive = item.path === '/admin' 
               ? location.pathname === '/admin' 
               : location.pathname.startsWith(item.path);
@@ -118,7 +118,6 @@ export default function AdminLayout() {
 
       {/* 3. Conteneur Principal */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header Supérieur */}
         <header className="h-20 bg-white border-b border-stone-200 px-6 lg:px-10 flex items-center justify-between sticky top-0 z-30 shadow-xs">
           <div className="flex items-center gap-4">
             <button
@@ -144,7 +143,7 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        {/* Zone dynamique des pages Admin (<Outlet />) */}
+        {/* Zone dynamique des pages Admin où la page AdminPacks sera affichée */}
         <main className="flex-1 p-6 md:p-10 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
