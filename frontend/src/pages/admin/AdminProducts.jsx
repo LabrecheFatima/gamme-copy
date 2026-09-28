@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../../services/api';
+import React, { useState } from 'react';
 import { 
   Package, 
   Plus, 
@@ -9,31 +8,113 @@ import {
   X, 
   Check, 
   Upload, 
-  AlertCircle,
   AlertTriangle,
   Eye,
   EyeOff
 } from 'lucide-react';
 
+// Catégories statiques
+const INITIAL_CATEGORIES = [
+  { id: 1, name: 'Soins & Beauté' },
+  { id: 2, name: 'Senteur & Bien-être' },
+  { id: 3, name: 'Maison & Déco' },
+  { id: 4, name: 'Art de la Table' }
+];
+
+// Produits statiques
+const INITIAL_PRODUCTS = [
+  {
+    id: 1,
+    name: 'Lalucell - Crème Visage Intensive',
+    slug: 'lalucell-creme-visage-intensive',
+    category_id: 1,
+    original_price: 3500,
+    promo_price: 2900,
+    stock_quantity: 25,
+    description: 'Crème apaisante et hautement hydratante pour ravivier l’éclat du teint.',
+    composition: 'Extraits végétaux, Acide hyaluronique',
+    conseil_utilisation: 'Appliquer matin et soir sur le visage et le cou.',
+    image_url: '/uploads/lalucell-creme.jpg',
+    images: ['/uploads/lalucell-creme.jpg'],
+    is_active: 1
+  },
+  {
+    id: 2,
+    name: 'Beloboka - Gommage Sucre & Papaye',
+    slug: 'beloboka-gommage-sucre-papaye',
+    category_id: 1,
+    original_price: 1800,
+    promo_price: null,
+    stock_quantity: 40,
+    description: 'Exfoliant corporel gourmand au sucre marin et enzymes.',
+    composition: 'Sucre naturel, Sel marin, Extrait de Papaye',
+    conseil_utilisation: 'Masser sur peau humide 1 à 2 fois par semaine.',
+    image_url: '/uploads/beloboka-gommage.jpg',
+    images: ['/uploads/beloboka-gommage.jpg'],
+    is_active: 1
+  },
+  {
+    id: 3,
+    name: 'Sukriaa - Masque Nila Bleue',
+    slug: 'sukriaa-masque-nila-bleue',
+    category_id: 1,
+    original_price: 2200,
+    promo_price: 1950,
+    stock_quantity: 30,
+    description: 'Masque adoucissant et éclaircissant traditionnel à la Nila.',
+    composition: 'Poudre de Nila, Gel d’Aloe Vera',
+    conseil_utilisation: 'Laisser poser 10 à 15 minutes sur le corps ou le visage.',
+    image_url: '/uploads/sukriaa-masque.jpg',
+    images: ['/uploads/sukriaa-masque.jpg'],
+    is_active: 1
+  },
+  {
+    id: 4,
+    name: 'Sérum Éclat Vitamine C 10%',
+    slug: 'serum-eclat-vitamine-c-10',
+    category_id: 1,
+    original_price: 2800,
+    promo_price: 2400,
+    stock_quantity: 50,
+    description: 'Sérum anti-oxydant pour raviver l’éclat du teint et unifier la peau.',
+    composition: 'Vitamine C pure, Acide férulique',
+    conseil_utilisation: 'Appliquer 3 à 4 gouttes le matin avant la crème.',
+    image_url: '/uploads/serum-vitamine-c.jpg',
+    images: ['/uploads/serum-vitamine-c.jpg'],
+    is_active: 1
+  },
+  {
+    id: 5,
+    name: 'Huile d’Argan Pure Bio',
+    slug: 'huile-d-argan-pure-bio',
+    category_id: 2,
+    original_price: 2500,
+    promo_price: 2100,
+    stock_quantity: 35,
+    description: 'Huile multi-usages nourrissante pour le visage, le corps et les cheveux.',
+    composition: '100% Huile d’Argan pressée à froid',
+    conseil_utilisation: 'Appliquer quelques gouttes en massage sur peau propre.',
+    image_url: '/uploads/argan-pure.jpg',
+    images: ['/uploads/argan-pure.jpg'],
+    is_active: 1
+  }
+];
+
 export default function AdminProducts() {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [categories] = useState(INITIAL_CATEGORIES);
   const [searchTerm, setSearchTerm] = useState('');
 
   // États pour la modal de création / édition
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
-  // Gestion de plusieurs images
-  const [imageFiles, setImageFiles] = useState([]); // Nouveaux fichiers à uploader
-  const [existingImages, setExistingImages] = useState([]); // URL des images déjà existantes
-  const [imagesToDelete, setImagesToDelete] = useState([]); // Images existantes marquées pour suppression
+  // Gestion des images
+  const [imageFiles, setImageFiles] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
 
   // État pour la modal de confirmation de suppression
   const [deletingProduct, setDeletingProduct] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -44,33 +125,9 @@ export default function AdminProducts() {
     conseil_utilisation: '',
     original_price: '',
     promo_price: '',
-    stock_quantity: '',
+    stock_quantity: '10',
     is_active: 1
   });
-
-  // Charger les produits et les catégories
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [resProducts, resCategories] = await Promise.all([
-        api.get('/products?limit=1000'),
-        api.get('/categories').catch(() => ({ data: [] }))
-      ]);
-
-      setProducts(resProducts.data.data || resProducts.data || []);
-      setCategories(resCategories.data || []);
-    } catch (err) {
-      console.error('Erreur lors du chargement des données :', err);
-      setError('Impossible de charger la liste des produits.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   // Génération automatique du slug
   const handleNameChange = (e) => {
@@ -94,7 +151,6 @@ export default function AdminProducts() {
     setEditingProduct(null);
     setImageFiles([]);
     setExistingImages([]);
-    setImagesToDelete([]);
     setFormData({
       name: '',
       slug: '',
@@ -114,14 +170,8 @@ export default function AdminProducts() {
   const handleOpenEditModal = (product) => {
     setEditingProduct(product);
     setImageFiles([]);
-    setImagesToDelete([]);
 
-    // Extraire les images existantes (soit product.images s'il s'agit d'un tableau, soit product.image_url)
-    const imgs = product.images 
-      ? product.images 
-      : product.image_url 
-        ? [product.image_url] 
-        : [];
+    const imgs = product.images || (product.image_url ? [product.image_url] : []);
     setExistingImages(imgs);
 
     setFormData({
@@ -139,7 +189,7 @@ export default function AdminProducts() {
     setIsModalOpen(true);
   };
 
-  // Sélection de plusieurs nouvelles images
+  // Sélection de nouvelles images
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
@@ -147,75 +197,57 @@ export default function AdminProducts() {
     }
   };
 
-  // Retirer un nouveau fichier sélectionné
   const handleRemoveNewImage = (index) => {
     setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Retirer une image existante du serveur
   const handleRemoveExistingImage = (imageUrl) => {
     setExistingImages(prev => prev.filter(img => img !== imageUrl));
-    setImagesToDelete(prev => [...prev, imageUrl]);
   };
 
-  // Enregistrement (Création ou Modification)
-  const handleSubmit = async (e) => {
+  // Enregistrement (Création ou Modification statique)
+  const handleSubmit = (e) => {
     e.preventDefault();
     
-    const data = new FormData();
-    data.append('name', formData.name);
-    data.append('slug', formData.slug);
-    data.append('category_id', formData.category_id);
-    data.append('description', formData.description);
-    data.append('composition', formData.composition);
-    data.append('conseil_utilisation', formData.conseil_utilisation);
-    data.append('original_price', formData.original_price);
-    data.append('promo_price', formData.promo_price ? formData.promo_price : '');
-    data.append('stock_quantity', formData.stock_quantity);
-    data.append('is_active', formData.is_active);
+    const newImageUrls = imageFiles.map(file => URL.createObjectURL(file));
+    const allImages = [...existingImages, ...newImageUrls];
 
-    // Ajout de chaque nouvelle image sous le champ 'images' ou 'images[]'
-    imageFiles.forEach((file) => {
-      data.append('images', file);
-    });
-
-    // Envoi des images à supprimer si nécessaire
-    if (imagesToDelete.length > 0) {
-      data.append('delete_images', JSON.stringify(imagesToDelete));
+    if (editingProduct) {
+      setProducts(prev => prev.map(p => {
+        if (p.id === editingProduct.id) {
+          return {
+            ...p,
+            ...formData,
+            original_price: Number(formData.original_price),
+            promo_price: formData.promo_price ? Number(formData.promo_price) : null,
+            stock_quantity: Number(formData.stock_quantity),
+            images: allImages,
+            image_url: allImages[0] || null
+          };
+        }
+        return p;
+      }));
+    } else {
+      const newProduct = {
+        id: Date.now(),
+        ...formData,
+        original_price: Number(formData.original_price),
+        promo_price: formData.promo_price ? Number(formData.promo_price) : null,
+        stock_quantity: Number(formData.stock_quantity),
+        images: allImages,
+        image_url: allImages[0] || null
+      };
+      setProducts(prev => [newProduct, ...prev]);
     }
 
-    try {
-      if (editingProduct) {
-        await api.put(`/admin/products/${editingProduct.id}`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-      } else {
-        await api.post('/admin/products', data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-      }
-
-      setIsModalOpen(false);
-      fetchData();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Erreur lors de l’enregistrement du produit.');
-    }
+    setIsModalOpen(false);
   };
 
   // Confirmer la suppression
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!deletingProduct) return;
-    
-    setIsDeleting(true);
-    try {
-      await api.delete(`/admin/products/${deletingProduct.id}`);
-      setProducts(prev => prev.filter(p => p.id !== deletingProduct.id));
-      setDeletingProduct(null);
-    } catch (err) {
-      alert(err.response?.data?.error || 'Erreur lors de la suppression.');
-    } finally {
-      setIsDeleting(false);
-    }
+    setProducts(prev => prev.filter(p => p.id !== deletingProduct.id));
+    setDeletingProduct(null);
   };
 
   const filteredProducts = products.filter(p => 
@@ -253,17 +285,7 @@ export default function AdminProducts() {
       </div>
 
       {/* Tableau des Produits */}
-      {loading ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-stone-200">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-stone-900 border-t-transparent"></div>
-          <p className="text-sm text-stone-500 mt-3">Chargement des produits...</p>
-        </div>
-      ) : error ? (
-        <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 flex items-center gap-3 text-sm">
-          <AlertCircle size={20} />
-          <span>{error}</span>
-        </div>
-      ) : filteredProducts.length === 0 ? (
+      {filteredProducts.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-stone-200">
           <Package className="mx-auto text-stone-300 mb-3" size={40} />
           <p className="text-stone-700 font-medium text-base">Aucun produit trouvé</p>
@@ -291,7 +313,7 @@ export default function AdminProducts() {
                           <div className="w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center">
                             {mainImage ? (
                               <img
-                                src={`${api.defaults.baseURL.replace('/api', '')}${mainImage}`}
+                                src={mainImage}
                                 alt={product.name}
                                 className="w-full h-full object-cover"
                               />
@@ -371,7 +393,7 @@ export default function AdminProducts() {
       {/* Modal de Confirmation de Suppression */}
       {deletingProduct && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-stone-200 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-stone-200">
             <div className="p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={24} />
@@ -382,14 +404,13 @@ export default function AdminProducts() {
               </h3>
               
               <p className="text-xs text-stone-500 leading-relaxed mb-6">
-                Êtes-vous sûr de vouloir supprimer définitivement <strong className="text-stone-800 font-semibold">"{deletingProduct.name}"</strong> ? Cette action est irréversible.
+                Êtes-vous sûr de vouloir supprimer définitivement <strong className="text-stone-800 font-semibold">"{deletingProduct.name}"</strong> ?
               </p>
 
               <div className="flex items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => setDeletingProduct(null)}
-                  disabled={isDeleting}
                   className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium rounded-xl transition-colors cursor-pointer"
                 >
                   Annuler
@@ -397,14 +418,9 @@ export default function AdminProducts() {
                 <button
                   type="button"
                   onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-xl transition-colors flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-xl transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
                 >
-                  {isDeleting ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Trash2 size={14} />
-                  )}
+                  <Trash2 size={14} />
                   Supprimer
                 </button>
               </div>
@@ -553,13 +569,11 @@ export default function AdminProducts() {
                   Images du Produit (Galerie)
                 </label>
                 
-                {/* Zone de prévisualisation des images */}
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 mb-3">
-                  {/* Images déjà enregistrées sur le serveur */}
                   {existingImages.map((imgUrl, idx) => (
                     <div key={`existing-${idx}`} className="relative group aspect-square rounded-lg overflow-hidden border border-stone-200 bg-stone-50">
                       <img
-                        src={`${api.defaults.baseURL.replace('/api', '')}${imgUrl}`}
+                        src={imgUrl}
                         alt={`Existante ${idx}`}
                         className="w-full h-full object-cover"
                       />
@@ -574,7 +588,6 @@ export default function AdminProducts() {
                     </div>
                   ))}
 
-                  {/* Nouvelles images ajoutées (non encore uploadées) */}
                   {imageFiles.map((file, idx) => (
                     <div key={`new-${idx}`} className="relative group aspect-square rounded-lg overflow-hidden border border-emerald-300 bg-emerald-50">
                       <img
@@ -594,10 +607,9 @@ export default function AdminProducts() {
                   ))}
                 </div>
 
-                {/* Bouton d'upload multiple */}
                 <label className="flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-stone-300 rounded-xl cursor-pointer hover:bg-stone-50 transition-colors text-xs text-stone-600 font-medium">
                   <Upload size={16} />
-                  <span>Ajouter une ou plusieurs images (WebP / PNG / JPG)</span>
+                  <span>Ajouter une ou plusieurs images</span>
                   <input
                     type="file"
                     accept="image/*"

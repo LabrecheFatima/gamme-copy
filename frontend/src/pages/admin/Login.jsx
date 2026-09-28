@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../../services/api';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -9,24 +8,21 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    try {
-      const response = await api.post('/admin/login', { username, password });
-      
-      // Stockage du JWT dans le localStorage
-      localStorage.setItem('token', response.data.token);
-      
-      // Redirection vers le Dashboard
-      navigate('/admin');
-    } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Identifiants incorrects');
-    } finally {
+    // Simulation d'une connexion statique
+    setTimeout(() => {
+      if (username && password) {
+        localStorage.setItem('token', 'fake-jwt-token-static');
+        navigate('/admin');
+      } else {
+        setError('Veuillez remplir tous les champs.');
+      }
       setLoading(false);
-    }
+    }, 500);
   };
 
   return (

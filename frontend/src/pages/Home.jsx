@@ -1,19 +1,22 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { useCart } from '../context/CartContext';
 
-// Importation des images du carrousel
+// Importation des images du carrousel et des produits
 import heroImg1 from '../assets/hero-1.png';
 import heroImg2 from '../assets/hero-2.png';
 import heroImg3 from '../assets/hero-3.png';
+
+import imageProduct1 from '../assets/image-product1.png';
+import imageProduct2 from '../assets/image-product2.png';
+import imageProduct3 from '../assets/image-product3.png';
+import imageProduct4 from '../assets/image-product4.png';
 
 import CategoriesSection from '../components/CategoriesSection';
 import AboutVideoSection from '../components/AboutVideoSection';
 import GlowSection from '../components/GlowSection';
 import PacksCarousel from '../components/PackCarousel';
-import { API_URL } from '../config';
 
 const heroSlides = [
   {
@@ -33,38 +36,69 @@ const heroSlides = [
   }
 ];
 
+// Produits statiques générés
+const STATIC_PRODUCTS = [
+  {
+    id: "1",
+    slug: "serum-hydratant-eclat",
+    name: "Sérum Hydratant Éclat intense",
+    category_name: "Sérums & Soins",
+    image: imageProduct1,
+    has_promo: true,
+    original_price: 3800,
+    final_price: 3200,
+    price: 3200,
+    description: "Formule concentrée à l'acide hyaluronique et à la vitamine C pour hydrater en profondeur et illuminer le teint instantanément."
+  },
+  {
+    id: "2",
+    slug: "creme-regenerante-nuit",
+    name: "Crème Régénérante de Nuit",
+    category_name: "Crèmes Hydratantes",
+    image: imageProduct2,
+    has_promo: false,
+    original_price: 4200,
+    final_price: 4200,
+    price: 4200,
+    description: "Soin de nuit nourrissant enrichi en huiles botaniques pour réparer la barrière cutanée pendant votre sommeil."
+  },
+  {
+    id: "3",
+    slug: "lotion-purifiante-botanique",
+    name: "Lotion Purifiante Botanique",
+    category_name: "Nettoyants & Lotions",
+    image: imageProduct3,
+    has_promo: true,
+    original_price: 2900,
+    final_price: 2400,
+    price: 2400,
+    description: "Lotion rééquilibrante à base d'extraits végétaux pour resserrer les pores et matifier le teint en douceur."
+  },
+  {
+    id: "4",
+    slug: "fluid-protecteur-uv",
+    name: "Fluide Protecteur UV SPF50+",
+    category_name: "Protection Solaire",
+    image: imageProduct4,
+    has_promo: false,
+    original_price: 3500,
+    final_price: 3500,
+    price: 3500,
+    description: "Protection solaire quotidienne invisible à fini mat qui protège contre les rayons UVA/UVB et la pollution."
+  }
+];
+
 export default function HomeHero() {
   const scrollRef = useRef(null);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const { addToCart } = useCart();
-  const serverBaseUrl = API_URL.replace(/\/api\/?$/, '');
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        // Demande 10 produits au backend
-        const response = await axios.get(`${API_URL}/products?limit=10`);
-        const data = response.data.data || response.data || [];
-        // Limite strictly aux 10 premiers produits reçus
-        setProducts(data.slice(0, 10));
-      } catch (error) {
-        console.error("Erreur lors du chargement des produits :", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
   }, []);
 
   const scroll = (direction) => {
@@ -88,13 +122,6 @@ export default function HomeHero() {
   const cardAnim = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-  };
-
-  const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return '/placeholder.png';
-    if (imageUrl.startsWith('http')) return imageUrl;
-    const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-    return `${serverBaseUrl}${cleanPath}`;
   };
 
   const handleAddToCart = (e, product) => {
@@ -212,83 +239,75 @@ export default function HomeHero() {
           </motion.div>
 
           <div className="relative group">
-            {loading ? (
-              <div className="text-center py-12 text-stone-500">Chargement des produits...</div>
-            ) : (
-              <motion.div 
-                ref={scrollRef}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: '-50px' }}
-                variants={staggerContainer}
-                className="flex md:grid md:grid-cols-3 lg:grid-cols-4 gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {products.map((product) => {
-                  const productSlug = product.slug || product.id || product._id;
-
-                  return (
-                    <motion.div 
-                      key={product.id || product._id}
-                      variants={cardAnim}
-                      className="min-w-[280px] sm:min-w-[320px] md:min-w-0 snap-start"
-                    >
-                      <Link 
-                        to={`/product/${productSlug}`}
-                        className="group block bg-white border border-stone-200/80 rounded-xl overflow-hidden shadow-xs hover:shadow-xl hover:border-stone-300 transition-all duration-300 flex flex-col justify-between h-full"
+            <motion.div 
+              ref={scrollRef}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-50px' }}
+              variants={staggerContainer}
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-4 gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {STATIC_PRODUCTS.map((product) => (
+                <motion.div 
+                  key={product.id}
+                  variants={cardAnim}
+                  className="min-w-[280px] sm:min-w-[320px] md:min-w-0 snap-start"
+                >
+                  <Link 
+                    to={`/product/${product.slug}`}
+                    className="group block bg-white border border-stone-200/80 rounded-xl overflow-hidden shadow-xs hover:shadow-xl hover:border-stone-300 transition-all duration-300 flex flex-col justify-between h-full"
+                  >
+                    {/* En-tête de la carte */}
+                    <div className="p-4 flex justify-between items-start z-10">
+                      <span className="bg-stone-100/90 backdrop-blur-xs px-3 py-1 text-[10px] tracking-widest uppercase text-stone-800 border border-stone-200/60 font-semibold rounded-full">
+                        {product.has_promo ? 'PROMO' : 'Nouveauté'}
+                      </span>
+                      <button 
+                        onClick={(e) => handleAddToCart(e, product)}
+                        title="Ajouter au panier"
+                        className="w-9 h-9 bg-stone-900 text-white rounded-full flex items-center justify-center hover:bg-stone-800 hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer z-20"
                       >
-                        {/* En-tête de la carte */}
-                        <div className="p-4 flex justify-between items-start z-10">
-                          <span className="bg-stone-100/90 backdrop-blur-xs px-3 py-1 text-[10px] tracking-widest uppercase text-stone-800 border border-stone-200/60 font-semibold rounded-full">
-                            {product.has_promo ? 'PROMO' : 'Nouveauté'}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Zone d'image du produit */}
+                    <div className="w-full h-64 sm:h-72 bg-stone-50/50 flex items-center justify-center p-6 overflow-hidden relative">
+                      <img 
+                        src={product.image} 
+                        alt={product.name} 
+                        className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out"
+                      />
+                    </div>
+
+                    {/* Informations du produit */}
+                    <div className="p-5 bg-white border-t border-stone-100 flex justify-between items-end gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-medium text-stone-900 mb-1 truncate group-hover:text-stone-600 transition-colors">
+                          {product.name}
+                        </h3>
+                        <p className="text-xs text-stone-400 font-light truncate">{product.category_name}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        {product.has_promo ? (
+                          <div className="flex flex-col items-end">
+                            <span className="line-through text-[11px] text-stone-400">{product.original_price} DA</span>
+                            <span className="text-sm font-semibold text-red-600">{product.final_price} DA</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-semibold text-stone-900">
+                            {product.original_price} DA
                           </span>
-                          <button 
-                            onClick={(e) => handleAddToCart(e, product)}
-                            title="Ajouter au panier"
-                            className="w-9 h-9 bg-stone-900 text-white rounded-full flex items-center justify-center hover:bg-stone-800 hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer z-20"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                          </button>
-                        </div>
-
-                        {/* Zone d'image du produit */}
-                        <div className="w-full h-64 sm:h-72 bg-stone-50/50 flex items-center justify-center p-6 overflow-hidden relative">
-                          <img 
-                            src={getImageUrl(product.image_url)} 
-                            alt={product.name} 
-                            className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out"
-                          />
-                        </div>
-
-                        {/* Informations du produit */}
-                        <div className="p-5 bg-white border-t border-stone-100 flex justify-between items-end gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-medium text-stone-900 mb-1 truncate group-hover:text-stone-600 transition-colors">
-                              {product.name}
-                            </h3>
-                            <p className="text-xs text-stone-400 font-light truncate">Soins de la peau</p>
-                          </div>
-                          <div className="text-right shrink-0">
-                            {product.has_promo ? (
-                              <div className="flex flex-col items-end">
-                                <span className="line-through text-[11px] text-stone-400">{product.original_price} DA</span>
-                                <span className="text-sm font-semibold text-red-600">{product.final_price} DA</span>
-                              </div>
-                            ) : (
-                              <span className="text-sm font-semibold text-stone-900">
-                                {product.original_price || product.price} DA
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
-            )}
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
         </div>
       </section>

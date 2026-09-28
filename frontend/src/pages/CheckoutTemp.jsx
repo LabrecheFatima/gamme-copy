@@ -1,20 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import { useCart } from '../context/CartContext';
-import { API_URL } from '../config';
+
+// Importation des images statiques depuis le dossier assets
+import imageProduct1 from '../assets/image-product1.png';
+import imageProduct2 from '../assets/image-product1.png';
+import imageProduct3 from '../assets/image-product1.png';
+
+// Map de secours pour associer une image locale aux articles du panier
+const DEFAULT_IMAGES = [imageProduct1, imageProduct2, imageProduct3];
+
+const STATIC_SHIPPING_RATES = [
+  { id: 1, wilaya_name: "01 - Adrar", price: 1000 },
+  { id: 2, wilaya_name: "02 - Chlef", price: 600 },
+  { id: 3, wilaya_name: "03 - Laghouat", price: 800 },
+  { id: 16, wilaya_name: "16 - Alger", price: 400 },
+  { id: 25, wilaya_name: "25 - Constantine", price: 600 },
+  { id: 31, wilaya_name: "31 - Oran", price: 600 }
+];
 
 export default function Checkout() {
   const { cart, totalAmount, clearCart } = useCart();
   const navigate = useNavigate();
 
-  // Configuration dynamique de la livraison reçue de l'admin
-  const [shippingEnabled, setShippingEnabled] = useState(false);
-  const [shippingRates, setShippingRates] = useState([]);
+  const [shippingEnabled] = useState(true);
+  const [shippingRates] = useState(STATIC_SHIPPING_RATES);
   const [selectedShippingCost, setSelectedShippingCost] = useState(0);
 
-  // Formulaire client
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -27,20 +40,6 @@ export default function Checkout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
 
-  // 1. Charger les frais de livraison dynamiques depuis la route publique Backend
-  useEffect(() => {
-    axios.get(`${API_URL}/shipping-rates`)
-      .then(res => {
-        const data = res.data || {};
-        setShippingEnabled(Boolean(data.shipping_enabled));
-        setShippingRates(data.rates || []);
-      })
-      .catch(err => {
-        console.error("Erreur chargement frais de livraison:", err);
-      });
-  }, []);
-
-  // 2. Mise à jour du formulaire & calcul auto du tarif au changement de wilaya
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -51,24 +50,14 @@ export default function Checkout() {
     }
   };
 
-  // 3. Helper robuste pour construire l'URL valide de l'image du produit
-  const getImageUrl = (item) => {
-    if (!item) return '/placeholder.png';
-
-    let rawImg = item.image_url;
-    if (!rawImg && item.images && item.images.length > 0) {
-      rawImg = typeof item.images[0] === 'string' ? item.images[0] : (item.images[0].url || item.images[0].path);
-    }
-
-    if (!rawImg) return '/placeholder.png';
-    if (rawImg.startsWith('http://') || rawImg.startsWith('https://')) return rawImg;
-
-    const fileName = rawImg.split('/').pop();
-    const cleanBaseUrl = API_URL.replace(/\/(api|uploads)\/?$/, '');
-    return `${cleanBaseUrl}/uploads/${fileName}`;
+  // Récupère la photo de l'article ou attribue une image des assets par défaut
+  const getItemImage = (item, index) => {
+    if (item.image_url) return item.image_url;
+    if (item.image) return item.image;
+    if (item.images && item.images.length > 0) return item.images[0];
+    return DEFAULT_IMAGES[index % DEFAULT_IMAGES.length];
   };
 
-  // Calculs du Sous-total et du Total Global
   const subtotal = totalAmount || cart.reduce((sum, item) => {
     const p = Number(item.has_promo ? item.final_price : (item.promo_price ?? item.price ?? item.original_price ?? 0));
     const q = item.qty || item.quantity || 1;
@@ -77,8 +66,7 @@ export default function Checkout() {
 
   const grandTotal = subtotal + (shippingEnabled ? selectedShippingCost : 0);
 
-  // 4. Soumission de la commande vers l'API
-  const handleSubmitOrder = async (e) => {
+  const handleSubmitOrder = (e) => {
     e.preventDefault();
 
     if (shippingEnabled && !formData.wilaya) {
@@ -88,38 +76,11 @@ export default function Checkout() {
 
     setIsSubmitting(true);
 
-    try {
-      const nameParts = formData.fullName.trim().split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || firstName;
-
-      const orderPayload = {
-        customer_first_name: firstName,
-        customer_last_name: lastName,
-        customer_phone: formData.phone,
-        wilaya: shippingEnabled ? formData.wilaya : 'N/A',
-        commune: formData.commune || 'Centre',
-        delivery_address: formData.address,
-        notes: formData.notes,
-        shipping_fee: shippingEnabled ? selectedShippingCost : 0,
-        total_price: grandTotal,
-        items: cart.map(item => ({
-          id: item.id || item.product_id,
-          qty: item.qty || item.quantity || 1,
-          price: Number(item.has_promo ? item.final_price : (item.promo_price ?? item.price ?? item.original_price ?? 0))
-        }))
-      };
-
-      await axios.post(`${API_URL}/orders`, orderPayload);
-
+    setTimeout(() => {
+      setIsSubmitting(false);
       setOrderPlaced(true);
       if (clearCart) clearCart();
-    } catch (error) {
-      console.error("Erreur lors de la validation de la commande :", error);
-      alert("Une erreur est survenue lors de l'enregistrement de votre commande.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    }, 1000);
   };
 
   if (cart.length === 0 && !orderPlaced) {
@@ -128,7 +89,8 @@ export default function Checkout() {
         <div className="max-w-md w-full mx-auto px-6 text-center">
           <div className="bg-white p-8 md:p-10 rounded-3xl border border-stone-200/60 shadow-xs">
             <h2 className="text-2xl font-serif text-stone-900 font-normal mb-3">Votre panier est vide</h2>
-            <Link to="/shop" className="inline-flex items-center justify-center gap-2 w-full bg-stone-900 text-white py-3.5 px-6 rounded-full text-xs font-medium uppercase tracking-widest mt-4">
+            <p className="text-stone-500 font-light text-xs mb-6">Découvrez nos gammes de soins pour remplir votre panier.</p>
+            <Link to="/shop" className="inline-flex items-center justify-center gap-2 w-full bg-stone-900 text-white py-3.5 px-6 rounded-full text-xs font-medium uppercase tracking-widest mt-2">
               Explorer la Boutique
             </Link>
           </div>
@@ -142,9 +104,10 @@ export default function Checkout() {
       <div className="w-full min-h-screen bg-[#FBF9F5] pt-28 pb-24 font-sans text-stone-800 flex items-center justify-center">
         <div className="max-w-md w-full mx-auto px-6 text-center">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-8 rounded-3xl border border-stone-200/60 shadow-xs">
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">✓</div>
             <h2 className="text-2xl font-serif text-stone-900 mb-3">Commande Confirmée !</h2>
             <p className="text-stone-500 font-light text-xs mb-8">Nous vous contacterons très prochainement par téléphone pour valider l'expédition.</p>
-            <button onClick={() => navigate('/shop')} className="w-full bg-stone-900 text-white py-3.5 px-6 rounded-full text-xs uppercase tracking-widest hover:bg-stone-800 transition-colors">
+            <button onClick={() => navigate('/shop')} className="w-full bg-stone-900 text-white py-3.5 px-6 rounded-full text-xs uppercase tracking-widest hover:bg-stone-800 transition-colors cursor-pointer">
               Retourner à la Boutique
             </button>
           </motion.div>
@@ -176,8 +139,7 @@ export default function Checkout() {
                 />
               </div>
 
-              {/* GRILLE TÉLÉPHONE & WILAYA (Si activée) */}
-              <div className={`grid grid-cols-1 ${shippingEnabled ? 'sm:grid-cols-2' : ''} gap-4`}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] uppercase tracking-widest text-stone-400 block mb-1.5 font-medium">Téléphone *</label>
                   <input 
@@ -191,26 +153,23 @@ export default function Checkout() {
                   />
                 </div>
 
-                {/* CHAMP WILAYA - MENU DÉROULANT SI TOGGLE ON / SUPPRIMÉ SI TOGGLE OFF */}
-                {shippingEnabled && (
-                  <div>
-                    <label className="text-[10px] uppercase tracking-widest text-stone-400 block mb-1.5 font-medium">Wilaya de Livraison *</label>
-                    <select
-                      name="wilaya"
-                      required={shippingEnabled}
-                      value={formData.wilaya}
-                      onChange={handleInputChange}
-                      className="w-full bg-[#FBF9F5] border border-stone-200 rounded-2xl px-4 py-3 text-xs text-stone-800 focus:outline-none focus:border-stone-400 transition-colors cursor-pointer"
-                    >
-                      <option value="">-- Sélectionner la Wilaya --</option>
-                      {shippingRates.map(rate => (
-                        <option key={rate.id || rate.wilaya_name} value={rate.wilaya_name}>
-                          {rate.wilaya_name} ({Number(rate.price).toLocaleString()} DA)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-stone-400 block mb-1.5 font-medium">Wilaya de Livraison *</label>
+                  <select
+                    name="wilaya"
+                    required
+                    value={formData.wilaya}
+                    onChange={handleInputChange}
+                    className="w-full bg-[#FBF9F5] border border-stone-200 rounded-2xl px-4 py-3 text-xs text-stone-800 focus:outline-none focus:border-stone-400 transition-colors cursor-pointer"
+                  >
+                    <option value="">-- Sélectionner la Wilaya --</option>
+                    {shippingRates.map(rate => (
+                      <option key={rate.id} value={rate.wilaya_name}>
+                        {rate.wilaya_name} ({Number(rate.price).toLocaleString()} DA)
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -252,18 +211,15 @@ export default function Checkout() {
               {cart.map((item, index) => {
                 const itemPrice = Number(item.has_promo ? item.final_price : (item.promo_price ?? item.price ?? item.original_price ?? 0));
                 const itemQty = item.qty || item.quantity || 1;
-                
+                const imageSource = getItemImage(item, index);
+
                 return (
                   <div key={item.id || index} className="flex items-center gap-4 pb-4 border-b border-stone-100">
                     <div className="w-16 h-16 bg-[#FBF9F5] rounded-xl border border-stone-200/60 p-1 flex items-center justify-center shrink-0 overflow-hidden">
                       <img 
-                        src={getImageUrl(item)} 
+                        src={imageSource} 
                         alt={item.name || 'Produit'} 
-                        className="max-h-full max-w-full object-contain"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/placeholder.png';
-                        }}
+                        className="w-full h-full object-cover rounded-lg"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -281,16 +237,12 @@ export default function Checkout() {
                 <span>Sous-total</span>
                 <span className="font-medium text-stone-800">{subtotal.toLocaleString()} DA</span>
               </div>
-              
+
               <div className="flex justify-between text-xs text-stone-500 font-light">
                 <span>Frais de livraison</span>
-                {shippingEnabled ? (
-                  <span className="font-medium text-stone-800">
-                    {selectedShippingCost > 0 ? `${selectedShippingCost.toLocaleString()} DA` : 'Sélectionnez une wilaya'}
-                  </span>
-                ) : (
-                  <span className="font-medium text-stone-800">0 DA</span>
-                )}
+                <span className="font-medium text-stone-800">
+                  {selectedShippingCost > 0 ? `${selectedShippingCost.toLocaleString()} DA` : 'Sélectionnez une wilaya'}
+                </span>
               </div>
 
               <div className="flex justify-between text-base font-medium text-stone-900 pt-3 border-t border-stone-100">

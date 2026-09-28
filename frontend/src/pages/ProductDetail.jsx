@@ -1,9 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import { useCart } from '../context/CartContext';
-import { API_URL } from '../config';
+
+// Importation des images locales
+import imageProduct1 from '../assets/image-product1.png';
+import imageProduct2 from '../assets/image-product2.png';
+import imageProduct3 from '../assets/image-product3.png';
+import imageProduct4 from '../assets/image-product4.png';
+
+const PRODUCTS_DATABASE = [
+  {
+    id: "1",
+    slug: "serum-hydratant-eclat",
+    name: "Sérum Hydratant Éclat intense",
+    category_name: "Sérums & Soins",
+    images: [imageProduct1, imageProduct2],
+    has_promo: true,
+    original_price: 3800,
+    final_price: 3200,
+    price: 3200,
+    description: "Formule concentrée à l'acide hyaluronique et à la vitamine C pour hydrater en profondeur et illuminer le teint instantanément.",
+    conseil_utilisation: "Appliquer 3 à 4 gouttes matin et soir sur une peau préalablement nettoyée. Masser doucement de l'intérieur vers l'extérieur du visage.",
+    composition: "Aqua, Hyaluronic Acid, Vitamin C Extract, Botanical Glycerin, Tocopherol (Vitamin E)."
+  },
+  {
+    id: "2",
+    slug: "creme-regenerante-nuit",
+    name: "Crème Régénérante de Nuit",
+    category_name: "Crèmes Hydratantes",
+    images: [imageProduct2, imageProduct3],
+    has_promo: false,
+    original_price: 4200,
+    final_price: 4200,
+    price: 4200,
+    description: "Soin de nuit nourrissant enrichi en huiles botaniques pour réparer la barrière cutanée pendant votre sommeil.",
+    conseil_utilisation: "Appliquer chaque soir sur le visage et le cou parfaitement nettoyés en effectuant de légers massages circulaires.",
+    composition: "Aqua, Shea Butter, Rosehip Seed Oil, Jojoba Oil, Cetearyl Alcohol, Essential Oils."
+  },
+  {
+    id: "3",
+    slug: "lotion-purifiante-botanique",
+    name: "Lotion Purifiante Botanique",
+    category_name: "Nettoyants & Lotions",
+    images: [imageProduct3, imageProduct4],
+    has_promo: true,
+    original_price: 2900,
+    final_price: 2400,
+    price: 2400,
+    description: "Lotion rééquilibrante à base d'extraits végétaux pour resserrer les pores et matifier le teint en douceur.",
+    conseil_utilisation: "Biberonner un coton de lotion et appliquer délicatement sur l'ensemble du visage le matin avant votre routine de soin.",
+    composition: "Aqua, Witch Hazel Water, Green Tea Leaf Extract, Zinc PCA, Salicylic Acid, Glycerin."
+  },
+  {
+    id: "4",
+    slug: "fluid-protecteur-uv",
+    name: "Fluide Protecteur UV SPF50+",
+    category_name: "Protection Solaire",
+    images: [imageProduct4, imageProduct1],
+    has_promo: false,
+    original_price: 3500,
+    final_price: 3500,
+    price: 3500,
+    description: "Protection solaire quotidienne invisible à fini mat qui protège contre les rayons UVA/UVB et la pollution.",
+    conseil_utilisation: "Appliquer généreusement 15 minutes avant l'exposition au soleil. Renouveler toutes les 2 heures.",
+    composition: "Aqua, Zinc Oxide, Titanium Dioxide, Niacinamide, Glycerin, Aloe Vera Extract."
+  }
+];
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -11,13 +74,11 @@ export default function ProductDetail() {
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [addedNotice, setAddedNotice] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
 
-  // État local pour les avis clients
   const [reviews, setReviews] = useState([
     { id: 1, author: 'Amel B.', rating: 5, date: '14 Septembre 2026', comment: 'Résultats visibles dès les premières applications. Ma peau est nettement plus douce et hydratée.' },
     { id: 2, author: 'Sarra M.', rating: 4, date: '02 Septembre 2026', comment: 'Très bonne texture, pénètre rapidement sans laisser de film gras. Je recommande !' }
@@ -27,61 +88,16 @@ export default function ProductDetail() {
   const [newAuthor, setNewAuthor] = useState('');
 
   useEffect(() => {
-    const fetchProductAndRelated = async () => {
-      try {
-        setLoading(true);
-        setSelectedImageIndex(0);
+    // Recherche du produit dans la base statique
+    const found = PRODUCTS_DATABASE.find(p => p.id === id || p.slug === id) || PRODUCTS_DATABASE[0];
+    setProduct(found);
+    setSelectedImageIndex(0);
 
-        // 1. Récupération du produit
-        const res = await axios.get(`${API_URL}/products/${id}`);
-        const data = res.data.data || res.data;
-        setProduct(data);
+    const related = PRODUCTS_DATABASE.filter(p => p.id !== found.id);
+    setRelatedProducts(related);
 
-        // 2. Récupération des produits suggérés
-        const allRes = await axios.get(`${API_URL}/products`);
-        const allProds = allRes.data.data || allRes.data || [];
-        const related = allProds.filter(p => p.id !== data.id && (p.category_id === data.category_id || p.category === data.category));
-        setRelatedProducts(related.slice(0, 4));
-
-      } catch (error) {
-        console.error("Erreur de chargement du produit :", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProductAndRelated();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
-
-  // Extraction de la liste complète d'images
-  const getImagesList = () => {
-    if (!product) return [];
-    
-    let list = [];
-    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
-      list = product.images.map(img => typeof img === 'string' ? img : (img.url || img.path));
-    } else if (product.image_url) {
-      list = [product.image_url];
-    }
-
-    if (product.gallery && Array.isArray(product.gallery)) {
-      list = [...list, ...product.gallery];
-    }
-
-    return list.filter(Boolean);
-  };
-
-  const imagesList = getImagesList();
-
-  const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return '/placeholder.png';
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl;
-
-    const filename = imageUrl.split('/').pop();
-    const cleanBaseUrl = API_URL.replace(/\/(api|uploads)\/?$/, '');
-    return `${cleanBaseUrl}/uploads/${filename}`;
-  };
 
   const handleAddToCart = () => {
     if (product) {
@@ -109,33 +125,10 @@ export default function ProductDetail() {
     setNewRating(5);
   };
 
-  if (loading) {
-    return (
-      <div className="w-full min-h-screen bg-[#FBF9F5] pt-32 pb-24 flex items-center justify-center font-sans text-stone-400 text-xs uppercase tracking-widest">
-        Chargement de l'expérience soin...
-      </div>
-    );
-  }
+  if (!product) return null;
 
-  if (!product) {
-    return (
-      <div className="w-full min-h-screen bg-[#FBF9F5] pt-32 pb-24 font-sans text-stone-800 flex items-center justify-center">
-        <div className="text-center bg-white p-10 rounded-3xl border border-stone-200/60 max-w-md mx-auto">
-          <h2 className="font-serif text-2xl font-normal text-stone-900 mb-3">Soin introuvable</h2>
-          <p className="text-xs text-stone-500 font-light mb-6">Le produit recherché n'existe pas ou a été retiré.</p>
-          <Link
-            to="/shop"
-            className="inline-block bg-stone-900 text-white text-xs px-6 py-3 rounded-full uppercase tracking-widest hover:bg-stone-800 transition-colors"
-          >
-            Retour à la boutique
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const categoryName = product.category_name || product.category?.name || product.category;
-  const currentPrice = Number(product.has_promo ? product.final_price : (product.original_price || product.price || 0));
+  const currentPrice = Number(product.has_promo ? product.final_price : product.original_price);
+  const imagesList = product.images || [product.image];
 
   return (
     <div className="w-full min-h-screen bg-[#FBF9F5] pt-24 md:pt-28 pb-24 font-sans text-stone-800">
@@ -145,13 +138,7 @@ export default function ProductDetail() {
         <div className="mb-8 flex items-center gap-2 text-xs font-light text-stone-400">
           <Link to="/" className="hover:text-stone-800 transition-colors">Accueil</Link>
           <span>/</span>
-          <Link to="/shop" className="hover:text-stone-800 transition-colors">Boutique</Link>
-          {categoryName && (
-            <>
-              <span>/</span>
-              <span className="text-stone-400">{categoryName}</span>
-            </>
-          )}
+          <span className="text-stone-400">{product.category_name}</span>
           <span>/</span>
           <span className="text-stone-800 truncate font-normal">{product.name}</span>
         </div>
@@ -168,21 +155,15 @@ export default function ProductDetail() {
                 </span>
               )}
 
-              {imagesList.length > 0 ? (
-                <motion.img
-                  key={selectedImageIndex}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                  src={getImageUrl(imagesList[selectedImageIndex])}
-                  alt={product.name}
-                  className="max-h-full max-w-full object-contain"
-                />
-              ) : (
-                <div className="text-center text-stone-300">
-                  <span className="text-[10px] uppercase tracking-widest">Aucune image disponible</span>
-                </div>
-              )}
+              <motion.img
+                key={selectedImageIndex}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                src={imagesList[selectedImageIndex]}
+                alt={product.name}
+                className="max-h-full max-w-full object-contain"
+              />
 
               {imagesList.length > 1 && (
                 <>
@@ -214,7 +195,7 @@ export default function ProductDetail() {
                         : 'border-stone-200/60 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={getImageUrl(img)} alt="" className="w-full h-full object-contain" />
+                    <img src={img} alt="" className="w-full h-full object-contain" />
                   </button>
                 ))}
               </div>
@@ -224,11 +205,9 @@ export default function ProductDetail() {
           {/* INFORMATIONS & ACHAT */}
           <div className="lg:col-span-5 bg-white p-6 md:p-8 rounded-3xl border border-stone-200/60 shadow-xs space-y-6">
             <div>
-              {categoryName && (
-                <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-medium block mb-2">
-                  Catégorie : {categoryName}
-                </span>
-              )}
+              <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-medium block mb-2">
+                Catégorie : {product.category_name}
+              </span>
               
               <h1 className="text-2xl md:text-3xl font-serif text-stone-900 font-normal tracking-tight mb-3">
                 {product.name}
@@ -249,17 +228,16 @@ export default function ProductDetail() {
                   </>
                 ) : (
                   <span className="text-xl md:text-2xl font-medium text-stone-900">
-                    {product.original_price || product.price} DA
+                    {product.original_price} DA
                   </span>
                 )}
               </div>
             </div>
 
             <p className="text-xs text-stone-600 font-light leading-relaxed border-t border-stone-100 pt-4">
-              {product.description || 'Formule concentrée élaborée à partir d\'ingrédients rigoureusement sélectionnés pour apporter équilibre et vitalité.'}
+              {product.description}
             </p>
 
-            {/* AVANTAGES LIVRAISON & QUALITÉ */}
             <div className="grid grid-cols-2 gap-3 py-3 border-y border-stone-100 text-[11px] text-stone-500 font-light">
               <div className="flex items-center gap-2">
                 <span>🚚</span>
@@ -311,12 +289,10 @@ export default function ProductDetail() {
                 </motion.p>
               )}
             </div>
-
           </div>
-
         </div>
 
-        {/* SECTION ONGLETS : CONSEILS D'UTILISATION ET COMPOSITION */}
+        {/* CONSEILS D'UTILISATION ET COMPOSITION */}
         <div className="bg-white rounded-3xl border border-stone-200/60 p-6 md:p-10 mb-16">
           <div className="flex items-center gap-8 border-b border-stone-100 pb-4 mb-6">
             <button
@@ -338,17 +314,13 @@ export default function ProductDetail() {
           </div>
 
           {activeTab === 'description' ? (
-            <div className="text-xs text-stone-600 font-light leading-relaxed space-y-3">
-              <p>
-                {product.conseil_utilisation || product.usage_instructions || product.how_to_use || 'Appliquer quotidiennement sur une peau propre et sèche. Masser délicatement par mouvements circulaires jusqu’à absorption complète.'}
-              </p>
-            </div>
+            <p className="text-xs text-stone-600 font-light leading-relaxed">
+              {product.conseil_utilisation}
+            </p>
           ) : (
-            <div className="text-xs text-stone-600 font-light leading-relaxed space-y-3">
-              <p>
-                {product.composition || product.ingredients || 'Aqua, Glycerin, Botanical Extracts, Natural Oils, Tocopherol (Vitamin E).'}
-              </p>
-            </div>
+            <p className="text-xs text-stone-600 font-light leading-relaxed">
+              {product.composition}
+            </p>
           )}
         </div>
 
@@ -418,7 +390,7 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* SECTION PRODUITS SIMILAIRES */}
+        {/* PRODUITS SUGGÉRÉS */}
         {relatedProducts.length > 0 && (
           <div>
             <div className="text-center max-w-xl mx-auto mb-8">
@@ -432,12 +404,12 @@ export default function ProductDetail() {
               {relatedProducts.map((rel) => (
                 <Link
                   key={rel.id}
-                  to={`/product/${rel.slug || rel.id}`}
+                  to={`/product/${rel.slug}`}
                   className="bg-white rounded-3xl border border-stone-200/60 p-5 flex flex-col justify-between hover:shadow-md transition-all group"
                 >
                   <div className="h-48 bg-[#FDFBF7] rounded-2xl p-4 flex items-center justify-center mb-4 overflow-hidden">
                     <img
-                      src={getImageUrl(rel.image_url || (rel.images && rel.images[0]))}
+                      src={rel.images ? rel.images[0] : rel.image}
                       alt={rel.name}
                       className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
                     />
@@ -445,7 +417,7 @@ export default function ProductDetail() {
                   <div>
                     <h4 className="font-serif text-sm text-stone-900 mb-1 line-clamp-1">{rel.name}</h4>
                     <p className="text-xs font-medium text-stone-900">
-                      {rel.has_promo ? rel.final_price : (rel.original_price || rel.price)} DA
+                      {rel.has_promo ? rel.final_price : rel.original_price} DA
                     </p>
                   </div>
                 </Link>

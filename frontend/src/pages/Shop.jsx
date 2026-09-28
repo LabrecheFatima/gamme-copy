@@ -1,87 +1,91 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { useCart } from '../context/CartContext';
-import { API_URL } from '../config';
+
+// Importation directe des visuels depuis vos assets
+import imageProduct1 from '../assets/image-product1.png';
+import imageProduct2 from '../assets/image-product2.png';
+import imageProduct3 from '../assets/image-product3.png';
+
+const STATIC_CATEGORIES = [
+  { id: 'serums', name: 'Sérums & Élixirs' },
+  { id: 'cremes', name: 'Crèmes & Hydratation' },
+  { id: 'masques', name: 'Masques & Soins' }
+];
+
+const STATIC_PRODUCTS = [
+  {
+    id: 1,
+    slug: 'serum-eclat-vitamine-c',
+    name: 'Sérum Éclat Vitamine C',
+    category_id: 'serums',
+    category_slug: 'serums',
+    description: 'Sérum concentré illuminateur pour unifier le teint et estomper les taches.',
+    original_price: 3800,
+    final_price: 3200,
+    has_promo: true,
+    image_url: imageProduct1
+  },
+  {
+    id: 2,
+    slug: 'creme-hydratante-apaisante',
+    name: 'Crème Hydratante Apaisante',
+    category_id: 'cremes',
+    category_slug: 'cremes',
+    description: 'Soin riche aux extraits botaniques pour réparer la barrière cutanée.',
+    original_price: 2900,
+    final_price: 2900,
+    has_promo: false,
+    image_url: imageProduct2
+  },
+  {
+    id: 3,
+    slug: 'masque-purifiant-argile',
+    name: 'Masque Purifiant Doux',
+    category_id: 'masques',
+    category_slug: 'masques',
+    description: 'Désincruste les pores sans assécher et apporte un fini mat naturel.',
+    original_price: 3100,
+    final_price: 2500,
+    has_promo: true,
+    image_url: imageProduct3
+  }
+];
 
 export default function Shop() {
   const { addToCart } = useCart();
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  const [products] = useState(STATIC_PRODUCTS);
+  const [categories] = useState(STATIC_CATEGORIES);
 
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [priceRange, setPriceRange] = useState(20000);
-  const [maxProductPrice, setMaxProductPrice] = useState(20000);
+
+  const maxP = Math.max(...products.map(p => Number(p.has_promo ? p.final_price : p.original_price)));
+  const initialMaxPrice = Math.ceil(maxP / 1000) * 1000 || 10000;
+
+  const [priceRange, setPriceRange] = useState(initialMaxPrice);
   const [sortBy, setSortBy] = useState('default');
-
-  // Déduction de la base d'URL du serveur pour servir les images (/uploads)
-  const serverBaseUrl = API_URL.replace(/\/api\/?$/, '');
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [productsRes, categoriesRes] = await Promise.all([
-          axios.get(`${API_URL}/products`),
-          axios.get(`${API_URL}/categories`).catch(() => ({ data: [] }))
-        ]);
-        
-        const prods = productsRes.data.data || productsRes.data || [];
-        setProducts(prods);
-
-        if (prods.length > 0) {
-          const maxP = Math.max(...prods.map(p => Number(p.has_promo ? p.final_price : (p.original_price || p.price || 0))));
-          const roundedMax = Math.ceil(maxP / 1000) * 1000 || 20000;
-          setMaxProductPrice(roundedMax);
-          setPriceRange(roundedMax);
-        }
-
-        const cats = categoriesRes.data.data || categoriesRes.data || [];
-        setCategories(cats);
-      } catch (error) {
-        console.error("Erreur de chargement du catalogue :", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const getImageUrl = (imageUrl) => {
-  if (!imageUrl) return '/placeholder.png';
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl;
-
-  // On extrait uniquement le nom du fichier (ex: "1790449229445.webp")
-  const filename = imageUrl.split('/').pop();
-
-  // On retire à la fois /api ET /uploads s'ils sont présents à la fin de API_URL
-  const cleanBaseUrl = API_URL.replace(/\/(api|uploads)\/?$/, '');
-
-  return `${cleanBaseUrl}/uploads/${filename}`;
-};
 
   const filteredProducts = useMemo(() => {
     return products
       .filter(product => {
         const matchName = product.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
-        const matchCategory = selectedCategory === 'all' || 
-          product.category_id === Number(selectedCategory) || 
+        const matchCategory =
+          selectedCategory === 'all' ||
+          product.category_id === selectedCategory ||
           product.category_slug === selectedCategory;
 
-        const currentPrice = Number(product.has_promo ? product.final_price : (product.original_price || product.price));
+        const currentPrice = Number(product.has_promo ? product.final_price : product.original_price);
         const matchPrice = currentPrice <= priceRange;
 
         return matchName && matchCategory && matchPrice;
       })
       .sort((a, b) => {
-        const priceA = Number(a.has_promo ? a.final_price : (a.original_price || a.price));
-        const priceB = Number(b.has_promo ? b.final_price : (b.original_price || b.price));
+        const priceA = Number(a.has_promo ? a.final_price : a.original_price);
+        const priceB = Number(b.has_promo ? b.final_price : b.original_price);
 
         if (sortBy === 'price-asc') return priceA - priceB;
         if (sortBy === 'price-desc') return priceB - priceA;
@@ -94,7 +98,7 @@ export default function Shop() {
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
-    setPriceRange(maxProductPrice);
+    setPriceRange(initialMaxPrice);
     setSortBy('default');
   };
 
@@ -141,13 +145,13 @@ export default function Shop() {
             <span className="text-[10px] uppercase tracking-widest text-stone-400 font-medium">
               Budget max : <strong className="text-stone-900 font-normal">{priceRange} DA</strong>
             </span>
-            <span className="text-[10px] text-stone-400">Plafond : {maxProductPrice} DA</span>
+            <span className="text-[10px] text-stone-400">Plafond : {initialMaxPrice} DA</span>
           </div>
           <input
             type="range"
             min="0"
-            max={maxProductPrice}
-            step="200"
+            max={initialMaxPrice}
+            step="100"
             value={priceRange}
             onChange={(e) => setPriceRange(Number(e.target.value))}
             className="w-full accent-stone-900 cursor-pointer h-1.5 bg-stone-100 rounded-lg"
@@ -171,28 +175,25 @@ export default function Shop() {
             onClick={() => setSelectedCategory('all')}
             className={`px-5 py-2.5 rounded-full text-xs transition-all whitespace-nowrap ${
               selectedCategory === 'all'
-                ? 'bg-stone-900 text-white shadow-sm'
+                ? 'bg-stone-900 text-white shadow-xs'
                 : 'bg-[#FBF9F5] text-stone-600 hover:bg-stone-200/60 border border-stone-200/60'
             }`}
           >
             Toutes ({products.length})
           </button>
-          {categories.map((cat) => {
-            const catId = cat.id || cat.slug;
-            return (
-              <button
-                key={catId}
-                onClick={() => setSelectedCategory(catId)}
-                className={`px-5 py-2.5 rounded-full text-xs transition-all whitespace-nowrap ${
-                  selectedCategory === catId
-                    ? 'bg-stone-900 text-white shadow-sm'
-                    : 'bg-[#FBF9F5] text-stone-600 hover:bg-stone-200/60 border border-stone-200/60'
-                }`}
-              >
-                {cat.name}
-              </button>
-            );
-          })}
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-5 py-2.5 rounded-full text-xs transition-all whitespace-nowrap ${
+                selectedCategory === cat.id
+                  ? 'bg-stone-900 text-white shadow-xs'
+                  : 'bg-[#FBF9F5] text-stone-600 hover:bg-stone-200/60 border border-stone-200/60'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -213,6 +214,7 @@ export default function Shop() {
           </p>
         </div>
 
+        {/* RECHERCHE & FILTRES EN MOBILES */}
         <div className="md:hidden mb-6 flex items-center gap-3">
           <div className="relative flex-1">
             <input
@@ -229,7 +231,7 @@ export default function Shop() {
 
           <button
             onClick={() => setIsMobileFilterOpen(true)}
-            className="bg-stone-900 text-white text-xs px-4 py-2.5 rounded-full flex items-center gap-2 font-medium shrink-0 shadow-sm"
+            className="bg-stone-900 text-white text-xs px-4 py-2.5 rounded-full flex items-center gap-2 font-medium shrink-0 shadow-xs"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -238,10 +240,12 @@ export default function Shop() {
           </button>
         </div>
 
+        {/* FILTRES DESKTOP */}
         <div className="hidden md:block bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-stone-200/60 shadow-xs mb-12">
           <FilterContent />
         </div>
 
+        {/* MODAL FILTRES MOBILE */}
         <AnimatePresence>
           {isMobileFilterOpen && (
             <div className="fixed inset-0 z-50 md:hidden flex justify-end">
@@ -258,7 +262,7 @@ export default function Shop() {
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="relative w-full bg-white rounded-t-3xl mt-auto p-6 max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col justify-between"
+                className="relative w-full bg-white rounded-t-3xl mt-auto p-6 max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col justify-between z-10"
               >
                 <div>
                   <div className="flex justify-between items-center mb-6 pb-3 border-b border-stone-100">
@@ -295,11 +299,8 @@ export default function Shop() {
           </p>
         </div>
 
-        {loading ? (
-          <div className="text-center py-24 text-stone-400 font-light text-xs tracking-widest uppercase">
-            Chargement de la collection...
-          </div>
-        ) : filteredProducts.length === 0 ? (
+        {/* LISTE DES PRODUITS */}
+        {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-3xl border border-stone-200/60 p-8">
             <p className="text-stone-500 font-light text-sm mb-6">Aucun soin ne correspond à ces critères de recherche.</p>
             <button
@@ -310,7 +311,7 @@ export default function Shop() {
             </button>
           </div>
         ) : (
-          <motion.div 
+          <motion.div
             layout
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
           >
@@ -338,9 +339,9 @@ export default function Shop() {
 
                     <Link to={`/product/${product.slug || product.id}`} className="block h-64 md:h-72 p-6 md:p-8 bg-[#FDFBF7] flex items-center justify-center overflow-hidden">
                       <img
-                        src={getImageUrl(product.image_url)}
+                        src={product.image_url}
                         alt={product.name}
-                        className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out"
+                        className="max-h-full max-w-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500 ease-out"
                       />
                     </Link>
                   </div>
@@ -353,7 +354,7 @@ export default function Shop() {
                         </Link>
                       </h3>
                       <p className="text-xs text-stone-400 font-light leading-relaxed line-clamp-2">
-                        {product.description || 'Formule concentrée pour régénérer et apaiser la peau en profondeur.'}
+                        {product.description}
                       </p>
                     </div>
 
@@ -366,14 +367,14 @@ export default function Shop() {
                           </div>
                         ) : (
                           <span className="text-sm md:text-base font-medium text-stone-900">
-                            {product.original_price || product.price} DA
+                            {product.original_price} DA
                           </span>
                         )}
                       </div>
 
                       <button
                         onClick={() => addToCart(product, 1)}
-                        className="bg-stone-900 text-white rounded-full p-2.5 md:p-3 hover:bg-stone-800 transition-colors group-hover:scale-105 flex items-center justify-center"
+                        className="bg-stone-900 text-white rounded-full p-2.5 md:p-3 hover:bg-stone-800 transition-colors group-hover:scale-105 flex items-center justify-center cursor-pointer"
                         title="Ajouter au panier"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

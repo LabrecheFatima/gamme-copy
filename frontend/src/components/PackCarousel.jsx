@@ -1,40 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-import { API_URL } from '../config';
+
+// Importation des images des packs
+import imageProduct1 from '../assets/pack-1.jpg';
+import imageProduct2 from '../assets/pack-2.jpg';
+import imageProduct3 from '../assets/pack-3.jpg';
+
+const STATIC_PACKS = [
+  {
+    id: "pack-eclat",
+    slug: "pack-eclat",
+    name: "Pack Éclat & Jeunesse",
+    original_price: 8000,
+    promo_price: 6500,
+    image_url: imageProduct1,
+  },
+  {
+    id: "pack-hydratation",
+    slug: "pack-hydratation",
+    name: "Pack Hydratation Intense",
+    original_price: 7500,
+    promo_price: 5900,
+    image_url: imageProduct2,
+  },
+  {
+    id: "pack-purifiant",
+    slug: "pack-purifiant",
+    name: "Pack Rituel Purifiant",
+    original_price: 6800,
+    promo_price: 5200,
+    image_url: imageProduct3,
+  }
+];
 
 export default function PacksCarousel() {
-  const [packs, setPacks] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const serverBaseUrl = API_URL.replace(/\/api\/?$/, '');
-
-  useEffect(() => {
-    const fetchPacks = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/packs`);
-        const data = response.data || [];
-        setPacks(data);
-      } catch (error) {
-        console.error("Erreur lors du chargement des packs :", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPacks();
-  }, []);
-
-  const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return '/placeholder.png';
-    if (imageUrl.startsWith('http')) return imageUrl;
-    const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-    return `${serverBaseUrl}${cleanPath}`;
-  };
-
-  if (loading || packs.length === 0) return null;
-
+  const packs = STATIC_PACKS;
   const infinitePacks = [...packs, ...packs];
 
   return (
@@ -55,7 +56,7 @@ export default function PacksCarousel() {
 
       <div className="max-w-7xl mx-auto px-6 md:px-16 pt-6 mb-8 relative z-10">
         <div>
-          <h2 className="text-3xl md:text-5xl font-serif tracking-tight text-apoteca-charcoal">
+          <h2 className="text-3xl md:text-5xl font-serif tracking-tight text-stone-900">
             Nos Packs Exclusifs
           </h2>
           <p className="text-stone-600 text-sm mt-1 font-medium">
@@ -78,47 +79,45 @@ export default function PacksCarousel() {
         >
           {infinitePacks.map((pack, index) => {
             const hasPromo = pack.promo_price && Number(pack.promo_price) > 0;
-            const mainImage = pack.image_url || (pack.images && pack.images[0]);
 
             return (
               <Link
-                    key={`${pack.id}-${index}`}
-                    to={`/pack/${pack.slug || pack.id}`}
-                    className="w-[280px] sm:w-[320px] md:w-[350px] h-[460px] sm:h-[500px] relative rounded-3xl overflow-hidden shadow-xl border border-white/50 flex-shrink-0 cursor-pointer group block"
-                    >
+                key={`${pack.id}-${index}`}
+                to={`/pack/${pack.slug || pack.id}`}
+                className="w-[280px] sm:w-[320px] md:w-[350px] h-[460px] sm:h-[500px] relative rounded-3xl overflow-hidden shadow-xl border border-white/50 flex-shrink-0 cursor-pointer group block"
+              >
                 {/* Image de fond du Pack */}
                 <div className="absolute inset-0 w-full h-full bg-stone-200">
                   <img
-                    src={getImageUrl(mainImage)}
+                    src={pack.image_url}
                     alt={pack.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/40" />
+                  {/* Dégradé en haut pour la lisibilité du texte */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/20 to-transparent" />
                 </div>
 
-                {/* Contenu du Pack */}
-                <div className="relative z-10 p-6 text-center flex flex-col items-center justify-between h-full">
-                  <div>
-                    <h3 className="text-2xl sm:text-3xl font-serif font-medium tracking-wide text-white drop-shadow-md mb-2">
-                      {pack.name}
-                    </h3>
+                {/* Contenu du Pack (Écriture en haut) */}
+                <div className="relative z-10 p-6 flex flex-col justify-start h-full text-center">
+                  <h3 className="text-xl sm:text-2xl font-serif font-medium tracking-wide text-white drop-shadow-md mb-2">
+                    {pack.name}
+                  </h3>
 
-                    <div className="flex flex-col items-center mt-1">
-                      {hasPromo ? (
-                        <>
-                          <span className="text-xs sm:text-sm font-light text-white/80 line-through tracking-wider">
-                            {pack.original_price} DA
-                          </span>
-                          <span className="text-2xl sm:text-3xl font-serif font-semibold text-white tracking-tight drop-shadow-md">
-                            {pack.promo_price} DA
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-2xl sm:text-3xl font-serif font-semibold text-white tracking-tight drop-shadow-md">
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    {hasPromo ? (
+                      <>
+                        <span className="text-xs sm:text-sm font-light text-white/80 line-through tracking-wider">
                           {pack.original_price} DA
                         </span>
-                      )}
-                    </div>
+                        <span className="text-xl sm:text-2xl font-serif font-semibold text-white tracking-tight drop-shadow-md">
+                          {pack.promo_price} DA
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xl sm:text-2xl font-serif font-semibold text-white tracking-tight drop-shadow-md">
+                        {pack.original_price} DA
+                      </span>
+                    )}
                   </div>
                 </div>
               </Link>

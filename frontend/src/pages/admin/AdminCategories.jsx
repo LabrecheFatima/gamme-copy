@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import api from '../../../services/api';
+import React, { useState, useMemo } from 'react';
 import { 
   FolderTree, 
   Plus, 
@@ -8,17 +7,48 @@ import {
   Trash2, 
   X, 
   Check, 
-  AlertCircle, 
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
   BookOpen
 } from 'lucide-react';
 
+// Données statiques par défaut
+const STATIC_CATEGORIES = [
+  {
+    id: 1,
+    name: "Soins du Visage",
+    slug: "soins-du-visage",
+    usage_method: "Appliquer matin et soir sur une peau propre et séchée en effectuant de doux mouvements circulaires."
+  },
+  {
+    id: 2,
+    name: "Soins du Corps",
+    slug: "soins-du-corps",
+    usage_method: "Utiliser quotidiennement après la douche sur l'ensemble du corps en insistant sur les zones sèches."
+  },
+  {
+    id: 3,
+    name: "Sérums & Huiles",
+    slug: "serums-et-huiles",
+    usage_method: "Déposer 2 à 3 gouttes sur le visage avant votre crème hydratante habituelle."
+  },
+  {
+    id: 4,
+    name: "Cheveux & Cuir Chevelu",
+    slug: "cheveux-et-cuir-chevelu",
+    usage_method: "Appliquer sur cheveux humides, masser doucement puis rincer abondamment à l'eau tiède."
+  },
+  {
+    id: 5,
+    name: "Solaire & Protection",
+    slug: "solaire-et-protection",
+    usage_method: "Appliquer généreusement 15 minutes avant l'exposition au soleil. Renouveler toutes les 2 heures."
+  }
+];
+
 export default function AdminCategories() {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [categories, setCategories] = useState(STATIC_CATEGORIES);
 
   // Recherche & Pagination
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,40 +59,9 @@ export default function AdminCategories() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({ name: '', slug: '', usage_method: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modal de confirmation de suppression
   const [deletingCategory, setDeletingCategory] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  // Charger les catégories depuis le backend
-  const fetchCategories = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Ajuste le chemin d'accès si tu utilises une sous-route d'administration ou générale (ex: /categories ou /admin/categories)
-      const response = await api.get('/admin/categories');
-      setCategories(response.data || []);
-    } catch (err) {
-      try {
-        const fallbackRes = await api.get('/categories');
-        setCategories(fallbackRes.data || []);
-      } catch (fallbackErr) {
-        console.error('Erreur lors du chargement des catégories :', fallbackErr);
-        setError(err.response?.data?.error || fallbackErr.response?.data?.error || 'Impossible de charger les catégories.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, itemsPerPage]);
 
   // Génération automatique du slug à partir du nom
   const handleNameChange = (e) => {
@@ -100,63 +99,28 @@ export default function AdminCategories() {
     setIsModalOpen(true);
   };
 
-  // Soumission du formulaire (Création / Modification)
-  const handleSubmit = async (e) => {
+  // Soumission du formulaire (Création / Modification en local)
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const endpoint = editingCategory 
-        ? `/admin/categories/${editingCategory.id}` 
-        : '/admin/categories';
-
-      if (editingCategory) {
-        await api.put(endpoint, formData);
-        setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...formData } : c));
-      } else {
-        const response = await api.post(endpoint, formData);
-        setCategories(prev => [response.data, ...prev]);
-      }
-      setIsModalOpen(false);
-    } catch (err) {
-      // Tentative fallback vers l'endpoint public si /admin/categories échoue
-      try {
-        const fallbackEndpoint = editingCategory 
-          ? `/categories/${editingCategory.id}` 
-          : '/categories';
-
-        if (editingCategory) {
-          await api.put(fallbackEndpoint, formData);
-          setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...formData } : c));
-        } else {
-          const response = await api.post(fallbackEndpoint, formData);
-          setCategories(prev => [response.data, ...prev]);
-        }
-        setIsModalOpen(false);
-      } catch (fallbackErr) {
-        alert(err.response?.data?.error || fallbackErr.response?.data?.error || 'Erreur lors de l’enregistrement de la catégorie.');
-      }
-    } finally {
-      setIsSubmitting(false);
+    if (editingCategory) {
+      setCategories(prev =>
+        prev.map(c => (c.id === editingCategory.id ? { ...c, ...formData } : c))
+      );
+    } else {
+      const newCategory = {
+        id: Date.now(),
+        ...formData
+      };
+      setCategories(prev => [newCategory, ...prev]);
     }
+    setIsModalOpen(false);
   };
 
-  // Suppression
-  const handleConfirmDelete = async () => {
+  // Suppression en local
+  const handleConfirmDelete = () => {
     if (!deletingCategory) return;
-    setIsDeleting(true);
-    try {
-      try {
-        await api.delete(`/admin/categories/${deletingCategory.id}`);
-      } catch (err) {
-        await api.delete(`/categories/${deletingCategory.id}`);
-      }
-      setCategories(prev => prev.filter(c => c.id !== deletingCategory.id));
-      setDeletingCategory(null);
-    } catch (err) {
-      alert(err.response?.data?.error || 'Erreur lors de la suppression de la catégorie.');
-    } finally {
-      setIsDeleting(false);
-    }
+    setCategories(prev => prev.filter(c => c.id !== deletingCategory.id));
+    setDeletingCategory(null);
   };
 
   // Recherche & Pagination
@@ -199,23 +163,16 @@ export default function AdminCategories() {
           type="text"
           placeholder="Rechercher par nom, slug ou mode d'emploi..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1);
+          }}
           className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-900 transition-colors"
         />
       </div>
 
-      {/* Chargement / Tableau */}
-      {loading ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-stone-200">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-stone-900 border-t-transparent"></div>
-          <p className="text-sm text-stone-500 mt-3">Chargement des catégories...</p>
-        </div>
-      ) : error ? (
-        <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 flex items-center gap-3 text-sm">
-          <AlertCircle size={20} />
-          <span>{error}</span>
-        </div>
-      ) : paginatedCategories.length === 0 ? (
+      {/* Tableau des catégories */}
+      {paginatedCategories.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-stone-200">
           <FolderTree className="mx-auto text-stone-300 mb-3" size={40} />
           <p className="text-stone-700 font-medium text-base">Aucune catégorie trouvée</p>
@@ -285,13 +242,16 @@ export default function AdminCategories() {
             </table>
           </div>
 
-          {/* Controls de Pagination */}
+          {/* Contrôles de Pagination */}
           <div className="px-6 py-4 bg-stone-50/50 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-600">
             <div className="flex items-center gap-2">
               <span>Afficher</span>
               <select
                 value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
                 className="px-2 py-1 bg-white border border-stone-200 rounded-lg font-medium focus:outline-none cursor-pointer"
               >
                 <option value={5}>5</option>
@@ -395,21 +355,15 @@ export default function AdminCategories() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  disabled={isSubmitting}
                   className="px-4 py-2 text-xs font-medium text-stone-600 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 text-xs font-medium bg-stone-900 text-white hover:bg-stone-800 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-medium bg-stone-900 text-white hover:bg-stone-800 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
-                  {isSubmitting ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Check size={14} />
-                  )}
+                  <Check size={14} />
                   {editingCategory ? 'Mettre à jour' : 'Créer'}
                 </button>
               </div>
@@ -432,14 +386,13 @@ export default function AdminCategories() {
               </h3>
               
               <p className="text-xs text-stone-500 leading-relaxed mb-6">
-                Êtes-vous sûr de vouloir supprimer la catégorie <strong className="text-stone-800 font-semibold">{deletingCategory.name}</strong> ? Cette action est définitive.
+                Êtes-vous sûr de vouloir supprimer la catégorie <strong className="text-stone-800 font-semibold">{deletingCategory.name}</strong> ?
               </p>
 
               <div className="flex items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => setDeletingCategory(null)}
-                  disabled={isDeleting}
                   className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium rounded-xl transition-colors cursor-pointer"
                 >
                   Annuler
@@ -447,14 +400,9 @@ export default function AdminCategories() {
                 <button
                   type="button"
                   onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-xl transition-colors flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-xl transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
                 >
-                  {isDeleting ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Trash2 size={14} />
-                  )}
+                  <Trash2 size={14} />
                   Supprimer
                 </button>
               </div>

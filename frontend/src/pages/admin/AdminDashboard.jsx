@@ -1,65 +1,118 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../../services/api';
 import { 
   TrendingUp, 
-  ShoppingBag, 
-  FolderTree, 
   Clock, 
   CheckCircle2, 
   Truck, 
-  XCircle, 
   ArrowRight,
-  AlertCircle,
-  Package,
   Search,
   ChevronRight,
   ShieldAlert,
   Calendar,
-  LineChart,
-  Filter
+  LineChart
 } from 'lucide-react';
 
+// Données statiques de démonstration pour les commandes
+const INITIAL_ORDERS = [
+  {
+    id: 1001,
+    created_at: '2026-03-25T10:30:00Z',
+    customer_first_name: 'Amine',
+    customer_last_name: 'Benali',
+    customer_phone: '0550123456',
+    wilaya: 'Alger',
+    total_amount: 8500,
+    status: 'en_attente'
+  },
+  {
+    id: 1002,
+    created_at: '2026-03-24T14:15:00Z',
+    customer_first_name: 'Sara',
+    customer_last_name: 'Khelifi',
+    customer_phone: '0661987654',
+    wilaya: 'Oran',
+    total_amount: 14200,
+    status: 'confirmee'
+  },
+  {
+    id: 1003,
+    created_at: '2026-03-23T09:00:00Z',
+    customer_first_name: 'Karim',
+    customer_last_name: 'Meziani',
+    customer_phone: '0770456789',
+    wilaya: 'Constantine',
+    total_amount: 6000,
+    status: 'expediee'
+  },
+  {
+    id: 1004,
+    created_at: '2026-03-22T18:45:00Z',
+    customer_first_name: 'Yasmine',
+    customer_last_name: 'Brahimi',
+    customer_phone: '0555334455',
+    wilaya: 'Blida',
+    total_amount: 11000,
+    status: 'livree'
+  },
+  {
+    id: 1005,
+    created_at: '2026-03-21T11:20:00Z',
+    customer_first_name: 'Othmane',
+    customer_last_name: 'Saidi',
+    customer_phone: '0662112233',
+    wilaya: 'Tlemcen',
+    total_amount: 4500,
+    status: 'annulee'
+  },
+  {
+    id: 1006,
+    created_at: '2026-02-15T16:00:00Z',
+    customer_first_name: 'Lina',
+    customer_last_name: 'Ferhani',
+    customer_phone: '0551223344',
+    wilaya: 'Sétif',
+    total_amount: 9800,
+    status: 'livree'
+  },
+  {
+    id: 1007,
+    created_at: '2026-01-10T11:00:00Z',
+    customer_first_name: 'Mehdi',
+    customer_last_name: 'Cherif',
+    customer_phone: '0771889900',
+    wilaya: 'Annaba',
+    total_amount: 15500,
+    status: 'livree'
+  }
+];
+
+// Données statiques de démonstration pour les catégories et produits
+const INITIAL_CATEGORIES = [
+  { id: 1, name: 'Traditionnel' },
+  { id: 2, name: 'Moderne' },
+  { id: 3, name: 'Accessoires' }
+];
+
+const INITIAL_PRODUCTS = [
+  { id: 1, name: 'Robe Traditionnelle Moderne', price: 8500 },
+  { id: 2, name: 'Ensemble Caftan Soie', price: 14200 },
+  { id: 3, name: 'Polo en Coton Premium', price: 3000 },
+  { id: 4, name: 'Sac à main en cuir', price: 11000 },
+  { id: 5, name: 'Ceinture Artisanale', price: 4500 }
+];
+
 export default function AdminDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading] = useState(false);
+  const [error] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Filtre temporel pour le graphique (month | day | season)
   const [timePeriod, setTimePeriod] = useState('month');
 
-  const [orders, setOrders] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [ordersRes, productsRes, categoriesRes] = await Promise.all([
-          api.get('/admin/orders'),
-          api.get('/products'),
-          api.get('/categories')
-        ]);
-
-        const rawProducts = Array.isArray(productsRes.data) 
-          ? productsRes.data 
-          : (productsRes.data?.data || []);
-
-        setOrders(ordersRes.data || []);
-        setProducts(rawProducts);
-        setCategories(categoriesRes.data || []);
-      } catch (err) {
-        console.error('Erreur lors du chargement des données du tableau de bord :', err);
-        setError(err.response?.data?.error || 'Impossible de charger les données du tableau de bord.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
+  const [orders] = useState(INITIAL_ORDERS);
+  const [products] = useState(INITIAL_PRODUCTS);
+  const [categories] = useState(INITIAL_CATEGORIES);
 
   // --- STATISTIQUES & KPI ---
   const stats = useMemo(() => {
@@ -211,7 +264,6 @@ export default function AdminDashboard() {
   if (error) {
     return (
       <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 flex items-center gap-3 text-sm">
-        <AlertCircle size={20} />
         <span>{error}</span>
       </div>
     );

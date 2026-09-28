@@ -1,9 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import { useCart } from '../context/CartContext';
-import { API_URL } from '../config';
+
+import imageProduct1 from '../assets/pack-1.jpg';
+import imageProduct2 from '../assets/pack-2.jpg';
+import imageProduct3 from '../assets/pack-3.jpg';
+
+const STATIC_PACKS = [
+  {
+    id: "pack-eclat",
+    slug: "pack-eclat",
+    name: "Pack Éclat & Jeunesse",
+    original_price: 8000,
+    promo_price: 6500,
+    image_url: imageProduct1,
+    images: [imageProduct1],
+    description: "Un rituel de soin complet conçu pour raviver l'éclat naturel de votre teint et régénérer la peau en profondeur.",
+    usage_instructions: "Appliquez le sérum matin et soir sur une peau propre, puis scellez l'hydratation avec la crème."
+  },
+  {
+    id: "pack-hydratation",
+    slug: "pack-hydratation",
+    name: "Pack Hydratation Intense",
+    original_price: 7500,
+    promo_price: 5900,
+    image_url: imageProduct2,
+    images: [imageProduct2],
+    description: "Une combinaison d'ingrédients hautement hydratants pour restaurer la barrière cutanée et apporter de la douceur.",
+    usage_instructions: "Utilisez la gelée hydratante chaque matin et le masque réparateur 2 fois par semaine."
+  },
+  {
+    id: "pack-purifiant",
+    slug: "pack-purifiant",
+    name: "Pack Rituel Purifiant",
+    original_price: 6800,
+    promo_price: 5200,
+    image_url: imageProduct3,
+    images: [imageProduct3],
+    description: "Formulé pour purifier les pores en douceur, réguler le sébum et clarifier le grain de peau.",
+    usage_instructions: "Nettoyez votre visage avec le nettoyant doux puis appliquez la lotion purifiante matin et soir."
+  }
+];
 
 export default function PackDetail() {
   const { id } = useParams();
@@ -17,46 +55,13 @@ export default function PackDetail() {
   const [activeTab, setActiveTab] = useState('description');
 
   useEffect(() => {
-  const fetchPack = async () => {
-        try {
-        setLoading(true);
-        // Fait la requête GET vers /api/packs/pack-eclat
-        const res = await axios.get(`${API_URL}/packs/${id}`);
-        const data = res.data.data || res.data;
-        setPack(data);
-        } catch (error) {
-        console.error("Erreur de chargement du pack :", error);
-        } finally {
-        setLoading(false);
-        }
-    };
+    setLoading(true);
+    const foundPack = STATIC_PACKS.find(p => p.id === id || p.slug === id);
+    setPack(foundPack || null);
+    setLoading(false);
+  }, [id]);
 
-    fetchPack();
-    }, [id]);
-
-  const getImagesList = () => {
-    if (!pack) return [];
-    
-    let list = [];
-    if (pack.images && Array.isArray(pack.images) && pack.images.length > 0) {
-      list = pack.images.map(img => typeof img === 'string' ? img : (img.url || img.path));
-    } else if (pack.image_url) {
-      list = [pack.image_url];
-    }
-
-    return list.filter(Boolean);
-  };
-
-  const imagesList = getImagesList();
-
-  const getImageUrl = (imageUrl) => {
-    if (!imageUrl) return '/placeholder.png';
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl;
-
-    const cleanBaseUrl = API_URL.replace(/\/(api|uploads)\/?$/, '');
-    const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-    return `${cleanBaseUrl}${cleanPath}`;
-  };
+  const imagesList = pack ? (pack.images || [pack.image_url]) : [];
 
   const handleAddToCart = () => {
     if (pack) {
@@ -92,7 +97,7 @@ export default function PackDetail() {
   }
 
   const hasPromo = pack.promo_price && Number(pack.promo_price) > 0;
-  const currentPrice = Number(hasPromo ? pack.promo_price : (pack.original_price || pack.price || 0));
+  const currentPrice = Number(hasPromo ? pack.promo_price : pack.original_price);
 
   return (
     <div className="w-full min-h-screen bg-[#FBF9F5] pt-24 md:pt-28 pb-24 font-sans text-stone-800">
@@ -112,7 +117,7 @@ export default function PackDetail() {
           
           {/* GALERIE IMAGES */}
           <div className="lg:col-span-7 space-y-4">
-            <div className="relative bg-white rounded-3xl border border-stone-200/60 h-80 sm:h-96 md:h-[480px] p-8 flex items-center justify-center overflow-hidden shadow-xs group">
+            <div className="relative bg-white rounded-3xl border border-stone-200/60 h-80 sm:h-96 md:h-[480px] p-4 flex items-center justify-center overflow-hidden shadow-xs group">
               <span className="absolute top-4 left-4 z-10 bg-apoteca-pink text-white text-[9px] font-medium tracking-widest uppercase px-3.5 py-1 rounded-full">
                 Pack Promo
               </span>
@@ -123,9 +128,9 @@ export default function PackDetail() {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3 }}
-                  src={getImageUrl(imagesList[selectedImageIndex])}
+                  src={imagesList[selectedImageIndex]}
                   alt={pack.name}
-                  className="max-h-full max-w-full object-contain"
+                  className="w-full h-full object-cover rounded-2xl"
                 />
               ) : (
                 <div className="text-center text-stone-300">
@@ -140,13 +145,13 @@ export default function PackDetail() {
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`w-20 h-20 bg-white rounded-2xl border p-2 shrink-0 transition-all ${
+                    className={`w-20 h-20 bg-white rounded-2xl border p-1 shrink-0 overflow-hidden transition-all ${
                       selectedImageIndex === index
                         ? 'border-stone-900 ring-2 ring-stone-900/10'
                         : 'border-stone-200/60 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={getImageUrl(img)} alt="" className="w-full h-full object-contain" />
+                    <img src={img} alt="" className="w-full h-full object-cover rounded-xl" />
                   </button>
                 ))}
               </div>
@@ -179,7 +184,7 @@ export default function PackDetail() {
             </div>
 
             <p className="text-xs text-stone-600 font-light leading-relaxed border-t border-stone-100 pt-4">
-              {pack.description || 'Profitez d’une routine soin complète soigneusement sélectionnée pour vous offrir des résultats optimaux à un prix préférentiel.'}
+              {pack.description}
             </p>
 
             {/* AVANTAGES LIVRAISON */}
@@ -262,15 +267,11 @@ export default function PackDetail() {
 
           {activeTab === 'description' ? (
             <div className="text-xs text-stone-600 font-light leading-relaxed space-y-3">
-              <p>
-                {pack.description || 'Ce pack associe plusieurs soins complémentaires pour maximiser les bienfaits sur votre peau au quotidien.'}
-              </p>
+              <p>{pack.description}</p>
             </div>
           ) : (
             <div className="text-xs text-stone-600 font-light leading-relaxed space-y-3">
-              <p>
-                {pack.usage_instructions || 'Utilisez les produits inclus selon la routine recommandée : nettoyez la peau, appliquez le sérum puis scellez avec la crème hydratante.'}
-              </p>
+              <p>{pack.usage_instructions}</p>
             </div>
           )}
         </div>

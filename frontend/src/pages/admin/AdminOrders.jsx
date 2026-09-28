@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import api from '../../../services/api';
 import { 
   ShoppingBag, 
   Search, 
@@ -18,12 +17,129 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  Package,
+  FileText
 } from 'lucide-react';
 
+// Données statiques de démonstration
+const INITIAL_ORDERS = [
+  {
+    id: 1001,
+    created_at: '2026-03-25T10:30:00Z',
+    customer_first_name: 'Amine',
+    customer_last_name: 'Benali',
+    customer_phone: '0550123456',
+    wilaya: 'Alger',
+    commune: 'Hydra',
+    delivery_address: '12 Rue Didouche Mourad',
+    total_amount: 8500,
+    status: 'en_attente',
+    notes: 'Veuillez appeler avant la livraison svp.',
+    items: [
+      {
+        product_id: 1,
+        product_name: 'Robe Traditionnelle Moderne',
+        unit_price: 8500,
+        quantity: 1,
+        image_url: null
+      }
+    ]
+  },
+  {
+    id: 1002,
+    created_at: '2026-03-24T14:15:00Z',
+    customer_first_name: 'Sara',
+    customer_last_name: 'Khelifi',
+    customer_phone: '0661987654',
+    wilaya: 'Oran',
+    commune: 'Es Senia',
+    delivery_address: 'Cité 500 logements, Bloc B',
+    total_amount: 14200,
+    status: 'confirmee',
+    notes: '',
+    items: [
+      {
+        product_id: 2,
+        product_name: 'Ensemble Caftan Soie',
+        unit_price: 14200,
+        quantity: 1,
+        image_url: null
+      }
+    ]
+  },
+  {
+    id: 1003,
+    created_at: '2026-03-23T09:00:00Z',
+    customer_first_name: 'Karim',
+    customer_last_name: 'Meziani',
+    customer_phone: '0770456789',
+    wilaya: 'Constantine',
+    commune: 'El Khroub',
+    delivery_address: 'N° 45 Quartier Bellevue',
+    total_amount: 6000,
+    status: 'en_livraison',
+    notes: 'Livraison souhaitée l\'après-midi.',
+    items: [
+      {
+        product_id: 3,
+        product_name: 'Polo en Coton Premium',
+        unit_price: 3000,
+        quantity: 2,
+        image_url: null
+      }
+    ]
+  },
+  {
+    id: 1004,
+    created_at: '2026-03-22T18:45:00Z',
+    customer_first_name: 'Yasmine',
+    customer_last_name: 'Brahimi',
+    customer_phone: '0555334455',
+    wilaya: 'Blida',
+    commune: 'Ouled Yaïch',
+    delivery_address: 'Résidence les Roses, Appt 12',
+    total_amount: 11000,
+    status: 'livree',
+    notes: '',
+    items: [
+      {
+        product_id: 4,
+        product_name: 'Sac à main en cuir',
+        unit_price: 11000,
+        quantity: 1,
+        image_url: null
+      }
+    ]
+  },
+  {
+    id: 1005,
+    created_at: '2026-03-21T11:20:00Z',
+    customer_first_name: 'Othmane',
+    customer_last_name: 'Saidi',
+    customer_phone: '0662112233',
+    wilaya: 'Tlemcen',
+    commune: 'Mansourah',
+    delivery_address: 'Boulevard de l\'Université',
+    total_amount: 4500,
+    status: 'annulee',
+    notes: 'Commande annulée par le client.',
+    items: [
+      {
+        product_id: 5,
+        product_name: 'Ceinture Artisanale',
+        unit_price: 4500,
+        quantity: 1,
+        image_url: null
+      }
+    ]
+  }
+];
+
 export default function AdminOrders() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Filtres
@@ -40,60 +156,35 @@ export default function AdminOrders() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Modales
+  const [viewingOrder, setViewingOrder] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [deletingOrder, setDeletingOrder] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const fetchOrders = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await api.get('/admin/orders');
-      setOrders(response.data || []);
-    } catch (err) {
-      console.error('Erreur lors du chargement des commandes :', err);
-      setError(err.response?.data?.error || 'Impossible de charger les commandes.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-  }, []);
 
   // Réinitialiser la page courante quand on filtre ou recherche
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, itemsPerPage]);
 
-  // Changement de statut
-  const handleStatusChange = async (orderId, newStatus) => {
+  // Changement de statut (statique)
+  const handleStatusChange = (orderId, newStatus) => {
     setUpdatingId(orderId);
-    try {
-      await api.put(`/admin/orders/${orderId}/status`, { status: newStatus });
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    } catch (err) {
-      alert(err.response?.data?.error || 'Erreur lors de la mise à jour du statut.');
-    } finally {
-      setUpdatingId(null);
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    if (viewingOrder && viewingOrder.id === orderId) {
+      setViewingOrder(prev => ({ ...prev, status: newStatus }));
     }
+    setUpdatingId(null);
   };
 
-  // Suppression
-  const handleConfirmDelete = async () => {
+  // Suppression (statique)
+  const handleConfirmDelete = () => {
     if (!deletingOrder) return;
     setIsDeleting(true);
-    try {
-      await api.delete(`/admin/orders/${deletingOrder.id}`);
-      setOrders(prev => prev.filter(o => o.id !== deletingOrder.id));
-      setDeletingOrder(null);
-    } catch (err) {
-      alert(err.response?.data?.error || 'Erreur lors de la suppression de la commande.');
-    } finally {
-      setIsDeleting(false);
-    }
+    setOrders(prev => prev.filter(o => o.id !== deletingOrder.id));
+    if (viewingOrder?.id === deletingOrder.id) setViewingOrder(null);
+    setDeletingOrder(null);
+    setIsDeleting(false);
   };
 
   // Édition
@@ -110,15 +201,14 @@ export default function AdminOrders() {
     });
   };
 
-  const handleSaveEdit = async (e) => {
+  // Sauvegarde édition (statique)
+  const handleSaveEdit = (e) => {
     e.preventDefault();
-    try {
-      await api.put(`/admin/orders/${editingOrder.id}/details`, editFormData);
-      setOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...editFormData } : o));
-      setEditingOrder(null);
-    } catch (err) {
-      alert(err.response?.data?.error || 'Erreur lors de la modification de la commande.');
+    setOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...editFormData } : o));
+    if (viewingOrder && viewingOrder.id === editingOrder.id) {
+      setViewingOrder(prev => ({ ...prev, ...editFormData }));
     }
+    setEditingOrder(null);
   };
 
   // Gérer le changement de colonne de tri
@@ -133,7 +223,6 @@ export default function AdminOrders() {
 
   // 1. Filtrage + 2. Tri + 3. Pagination
   const processedOrders = useMemo(() => {
-    // 1. Filtrage
     let filtered = orders.filter(order => {
       const fullName = `${order.customer_first_name || ''} ${order.customer_last_name || ''}`.toLowerCase();
       const phone = order.customer_phone || '';
@@ -151,7 +240,6 @@ export default function AdminOrders() {
       return matchesSearch && matchesStatus;
     });
 
-    // 2. Tri
     filtered.sort((a, b) => {
       let valA = a[sortField];
       let valB = b[sortField];
@@ -172,7 +260,6 @@ export default function AdminOrders() {
     return filtered;
   }, [orders, searchTerm, statusFilter, sortField, sortOrder]);
 
-  // Calculs pour la pagination
   const totalItems = processedOrders.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
   const paginatedOrders = useMemo(() => {
@@ -185,13 +272,23 @@ export default function AdminOrders() {
     return sortOrder === 'asc' ? <ArrowUp size={13} className="text-stone-900" /> : <ArrowDown size={13} className="text-stone-900" />;
   };
 
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'confirmee': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'en_livraison': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'livree': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'annulee': return 'bg-rose-50 text-rose-700 border-rose-200';
+      default: return 'bg-amber-50 text-amber-700 border-amber-200';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-stone-200 shadow-xs">
         <div>
           <h2 className="text-2xl font-serif text-stone-900">Gestion des Commandes</h2>
-          <p className="text-xs text-stone-500 mt-1">Consultez, modifiez et gérez les commandes de la boutique</p>
+          <p className="text-xs text-stone-500 mt-1">Consultez, détaillez et gérez les commandes de la boutique</p>
         </div>
         <span className="text-xs font-semibold px-3 py-1.5 bg-stone-100 text-stone-700 rounded-lg border border-stone-200 self-start sm:self-auto">
           Total : {orders.length}
@@ -292,7 +389,7 @@ export default function AdminOrders() {
                       <p className="font-medium text-stone-900">
                         {order.customer_first_name} {order.customer_last_name}
                       </p>
-                      <a href={`tel:${order.customer_phone}`} className="text-xs text-stone-500 flex items-center gap-1 mt-0.5">
+                      <a href={`tel:${order.customer_phone}`} className="text-xs text-stone-500 flex items-center gap-1 mt-0.5 hover:text-stone-900 transition-colors">
                         <Phone size={12} />
                         {order.customer_phone}
                       </a>
@@ -328,11 +425,18 @@ export default function AdminOrders() {
                     </td>
 
                     <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setViewingOrder(order)}
+                          className="p-2 text-stone-600 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                          title="Détails de la commande"
+                        >
+                          <Eye size={16} />
+                        </button>
                         <button
                           onClick={() => handleStartEdit(order)}
                           className="p-2 text-stone-600 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
-                          title="Modifier la commande"
+                          title="Modifier les coordonnées"
                         >
                           <Edit3 size={16} />
                         </button>
@@ -406,10 +510,147 @@ export default function AdminOrders() {
         </div>
       )}
 
+      {/* Modal de Consultation / Détails de la commande */}
+      {viewingOrder && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden border border-stone-200 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-stone-200 bg-stone-50/50">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-serif text-stone-900">Commande #{viewingOrder.id}</h3>
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${getStatusBadgeClass(viewingOrder.status)}`}>
+                    {viewingOrder.status.replace('_', ' ')}
+                  </span>
+                </div>
+                {viewingOrder.created_at && (
+                  <p className="text-xs text-stone-500 mt-1">
+                    Passée le {new Date(viewingOrder.created_at).toLocaleString('fr-FR')}
+                  </p>
+                )}
+              </div>
+              <button 
+                onClick={() => setViewingOrder(null)} 
+                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 text-xs text-stone-700">
+              {/* Infos Client & Livraison */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-stone-50 rounded-xl border border-stone-200/80">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase text-stone-400 mb-1.5">Informations Client</p>
+                  <p className="font-medium text-stone-900 text-sm">
+                    {viewingOrder.customer_first_name} {viewingOrder.customer_last_name}
+                  </p>
+                  <a href={`tel:${viewingOrder.customer_phone}`} className="inline-flex items-center gap-1 text-stone-600 hover:text-stone-900 mt-1">
+                    <Phone size={13} />
+                    {viewingOrder.customer_phone}
+                  </a>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase text-stone-400 mb-1.5">Adresse de Livraison</p>
+                  <p className="font-medium text-stone-900">
+                    {viewingOrder.wilaya} {viewingOrder.commune && `(${viewingOrder.commune})`}
+                  </p>
+                  <p className="text-stone-600 mt-0.5">{viewingOrder.delivery_address}</p>
+                </div>
+              </div>
+
+              {/* Remarques / Notes */}
+              {viewingOrder.notes && (
+                <div className="p-3.5 bg-amber-50/50 border border-amber-200/60 rounded-xl text-amber-900">
+                  <p className="font-semibold text-[11px] uppercase text-amber-700 mb-0.5 flex items-center gap-1">
+                    <FileText size={13} /> Note du client
+                  </p>
+                  <p className="text-xs">{viewingOrder.notes}</p>
+                </div>
+              )}
+
+              {/* Articles Commandés */}
+              <div>
+                <h4 className="font-serif text-sm text-stone-900 mb-3 font-semibold">Produits Commandés</h4>
+                
+                {viewingOrder.items && viewingOrder.items.length > 0 ? (
+                  <div className="border border-stone-200 rounded-xl divide-y divide-stone-100 overflow-hidden">
+                    {viewingOrder.items.map((item, idx) => {
+                      const itemImage = item.image_url || item.product?.image_url;
+                      return (
+                        <div key={idx} className="p-3 flex items-center justify-between gap-4 bg-white hover:bg-stone-50/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-stone-100 rounded-lg border border-stone-200 shrink-0 overflow-hidden flex items-center justify-center">
+                              {itemImage ? (
+                                <img
+                                  src={itemImage}
+                                  alt={item.product_name || item.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Package size={20} className="text-stone-400" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-stone-900 text-sm">
+                                {item.product_name || item.name || `Produit #${item.product_id}`}
+                              </p>
+                              <p className="text-stone-500 text-xs">
+                                Prix unitaire : {item.unit_price || item.price} DA
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-stone-500 font-mono text-xs">x{item.quantity}</p>
+                            <p className="font-semibold text-stone-900 mt-0.5">
+                              {Number(item.unit_price || item.price || 0) * Number(item.quantity || 1)} DA
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 text-center text-stone-500">
+                    Aucun détail sur les articles n'est disponible pour cette commande.
+                  </div>
+                )}
+              </div>
+
+              {/* Récapitulatif du total */}
+              <div className="pt-4 border-t border-stone-200 flex justify-between items-center text-base">
+                <span className="font-medium text-stone-700">Total de la commande :</span>
+                <span className="font-serif font-bold text-stone-900 text-xl">{viewingOrder.total_amount} DA</span>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-stone-100 bg-stone-50/50 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  handleStartEdit(viewingOrder);
+                  setViewingOrder(null);
+                }}
+                className="px-4 py-2 bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 text-xs font-medium rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Edit3 size={14} /> Modifier coordonnées
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewingOrder(null)}
+                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-medium rounded-xl transition-colors cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Confirmation de Suppression */}
       {deletingOrder && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-stone-200 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-stone-200">
             <div className="p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={24} />
