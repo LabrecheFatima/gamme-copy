@@ -21,7 +21,7 @@ export default function Login() {
       localStorage.setItem('token', response.data.token);
       
       // Redirection vers le Dashboard
-      navigate('/admin/dashboard');
+      navigate('/admin');
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Identifiants incorrects');
     } finally {

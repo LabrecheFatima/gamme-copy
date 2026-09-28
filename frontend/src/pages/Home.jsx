@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { useCart } from '../context/CartContext';
 
 // Importation des images du carrousel
 import heroImg1 from '../assets/hero-1.png';
@@ -38,6 +39,7 @@ export default function HomeHero() {
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  const { addToCart } = useCart();
   const serverBaseUrl = API_URL.replace(/\/api\/?$/, '');
 
   useEffect(() => {
@@ -53,7 +55,7 @@ export default function HomeHero() {
         // Demande 10 produits au backend
         const response = await axios.get(`${API_URL}/products?limit=10`);
         const data = response.data.data || response.data || [];
-        // Limite strictement aux 10 premiers produits reçus
+        // Limite strictly aux 10 premiers produits reçus
         setProducts(data.slice(0, 10));
       } catch (error) {
         console.error("Erreur lors du chargement des produits :", error);
@@ -95,10 +97,12 @@ export default function HomeHero() {
     return `${serverBaseUrl}${cleanPath}`;
   };
 
-  const handleAddToCart = (e, productId) => {
+  const handleAddToCart = (e, product) => {
     e.stopPropagation();
     e.preventDefault();
-    // Logique d'ajout rapide au panier
+    if (addToCart) {
+      addToCart(product, 1);
+    }
   };
 
   return (
@@ -239,7 +243,7 @@ export default function HomeHero() {
                             {product.has_promo ? 'PROMO' : 'Nouveauté'}
                           </span>
                           <button 
-                            onClick={(e) => handleAddToCart(e, product.id || product._id)}
+                            onClick={(e) => handleAddToCart(e, product)}
                             title="Ajouter au panier"
                             className="w-9 h-9 bg-stone-900 text-white rounded-full flex items-center justify-center hover:bg-stone-800 hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer z-20"
                           >

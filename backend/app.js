@@ -8,7 +8,28 @@ const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
-app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
+// 1. Liste des origines autorisées (Render, cPanel, Vercel, Local)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL, // URL Vercel ou futur domaine cPanel
+].filter(Boolean); // Filtre les valeurs undefined/null
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Autorise les requêtes sans origine (comme Postman ou requêtes internes)
+    if (!origin) return callback(null, true);
+    
+    // Si process.env.FRONTEND_URL est mis à '*', on autorise tout
+    if (process.env.FRONTEND_URL === '*' || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    return callback(null, true); // Ou callback(new Error('CORS non autorisé')) si vous voulez bloquer
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
