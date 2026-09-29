@@ -85,12 +85,12 @@ export default function Checkout() {
 
   if (cart.length === 0 && !orderPlaced) {
     return (
-      <div className="w-full min-h-screen bg-[#FBF9F5] pt-28 pb-24 font-sans text-stone-800 flex items-center justify-center">
+      <div className="w-full min-h-screen bg-[#f8f5f1] pb-24 font-sans text-stone-800 flex items-center justify-center">
         <div className="max-w-md w-full mx-auto px-6 text-center">
-          <div className="bg-white p-8 md:p-10 rounded-3xl border border-stone-200/60 shadow-xs">
-            <h2 className="text-2xl font-serif text-stone-900 font-normal mb-3">Votre panier est vide</h2>
+          <div className="bg-white p-8 md:p-10 border border-[#e3dcd3]">
+            <h2 className="text-2xl font-serif font-normal uppercase tracking-[0.04em] text-[#2e2a2b] mb-3">Votre panier est vide</h2>
             <p className="text-stone-500 font-light text-xs mb-6">Découvrez nos gammes de soins pour remplir votre panier.</p>
-            <Link to="/shop" className="inline-flex items-center justify-center gap-2 w-full bg-stone-900 text-white py-3.5 px-6 rounded-full text-xs font-medium uppercase tracking-widest mt-2">
+            <Link to="/shop" className="inline-flex items-center justify-center gap-2 w-full bg-[#e9a3a0] text-white py-3.5 px-6  text-xs font-medium uppercase tracking-widest mt-2">
               Explorer la Boutique
             </Link>
           </div>
@@ -101,13 +101,13 @@ export default function Checkout() {
 
   if (orderPlaced) {
     return (
-      <div className="w-full min-h-screen bg-[#FBF9F5] pt-28 pb-24 font-sans text-stone-800 flex items-center justify-center">
+      <div className="w-full min-h-screen bg-[#f8f5f1] pb-24 font-sans text-stone-800 flex items-center justify-center">
         <div className="max-w-md w-full mx-auto px-6 text-center">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-8 rounded-3xl border border-stone-200/60 shadow-xs">
-            <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">✓</div>
-            <h2 className="text-2xl font-serif text-stone-900 mb-3">Commande Confirmée !</h2>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-8 border border-[#e3dcd3]">
+            <div className="w-12 h-12 bg-[#f3d9d7] text-[#8a4b48] rounded-full flex items-center justify-center mx-auto mb-4 text-xl">✓</div>
+            <h2 className="text-2xl font-serif font-normal uppercase tracking-[0.04em] text-[#2e2a2b] mb-3">Commande Confirmée !</h2>
             <p className="text-stone-500 font-light text-xs mb-8">Nous vous contacterons très prochainement par téléphone pour valider l'expédition.</p>
-            <button onClick={() => navigate('/shop')} className="w-full bg-stone-900 text-white py-3.5 px-6 rounded-full text-xs uppercase tracking-widest hover:bg-stone-800 transition-colors cursor-pointer">
+            <button onClick={() => navigate('/shop')} className="w-full bg-[#e9a3a0] text-white py-3.5 px-6  text-xs uppercase tracking-widest hover:brightness-105 transition cursor-pointer">
               Retourner à la Boutique
             </button>
           </motion.div>
@@ -117,17 +117,22 @@ export default function Checkout() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#FBF9F5] pt-24 md:pt-28 pb-24 font-sans text-stone-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12">
+    <div className="w-full min-h-screen bg-[#f8f5f1] pb-20 font-sans text-[#2b2626]">
+      <div className="bg-[#2e2a2b] px-4 sm:px-6 md:px-12 py-10 md:py-14">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="font-serif font-normal uppercase tracking-[0.04em] leading-tight text-[#e9e1d8] text-3xl md:text-5xl">Finaliser la commande</h1>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-8 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* FORMULAIRE DE LIVRAISON */}
-          <div className="lg:col-span-7 bg-white p-6 md:p-8 rounded-3xl border border-stone-200/60 shadow-xs">
-            <h2 className="font-serif text-xl text-stone-900 mb-6 pb-4 border-b border-stone-100">Informations de Livraison</h2>
+          <div className="lg:col-span-7 bg-white p-6 md:p-8 border border-[#e3dcd3]">
+            <h2 className="font-serif text-xl font-normal uppercase tracking-[0.04em] text-[#2e2a2b] mb-6 pb-4 border-b border-[#e9e2d9]">Informations de Livraison</h2>
 
             <form onSubmit={handleSubmitOrder} className="space-y-5">
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-stone-400 block mb-1.5 font-medium">Nom & Prénom *</label>
+                <label className="text-[11px] text-stone-500 block mb-1.5 font-medium">Nom & Prénom *</label>
                 <input 
                   type="text" 
                   name="fullName" 
@@ -135,13 +140,13 @@ export default function Checkout() {
                   placeholder="Ex: Amina Benali" 
                   value={formData.fullName} 
                   onChange={handleInputChange} 
-                  className="w-full bg-[#FBF9F5] border border-stone-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-stone-400 transition-colors" 
+                  className="w-full bg-white border border-[#ddd3c8] px-4 py-3 text-xs focus:outline-none focus:border-[#2e2a2b] transition-colors" 
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] uppercase tracking-widest text-stone-400 block mb-1.5 font-medium">Téléphone *</label>
+                  <label className="text-[11px] text-stone-500 block mb-1.5 font-medium">Téléphone *</label>
                   <input 
                     type="tel" 
                     name="phone" 
@@ -149,18 +154,18 @@ export default function Checkout() {
                     placeholder="06XX XX XX XX" 
                     value={formData.phone} 
                     onChange={handleInputChange} 
-                    className="w-full bg-[#FBF9F5] border border-stone-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-stone-400 transition-colors" 
+                    className="w-full bg-white border border-[#ddd3c8] px-4 py-3 text-xs focus:outline-none focus:border-[#2e2a2b] transition-colors" 
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase tracking-widest text-stone-400 block mb-1.5 font-medium">Wilaya de Livraison *</label>
+                  <label className="text-[11px] text-stone-500 block mb-1.5 font-medium">Wilaya de Livraison *</label>
                   <select
                     name="wilaya"
                     required
                     value={formData.wilaya}
                     onChange={handleInputChange}
-                    className="w-full bg-[#FBF9F5] border border-stone-200 rounded-2xl px-4 py-3 text-xs text-stone-800 focus:outline-none focus:border-stone-400 transition-colors cursor-pointer"
+                    className="w-full bg-white border border-[#ddd3c8] px-4 py-3 text-xs text-stone-800 focus:outline-none focus:border-[#2e2a2b] transition-colors cursor-pointer"
                   >
                     <option value="">-- Sélectionner la Wilaya --</option>
                     {shippingRates.map(rate => (
@@ -173,7 +178,7 @@ export default function Checkout() {
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-stone-400 block mb-1.5 font-medium">Adresse exacte de livraison *</label>
+                <label className="text-[11px] text-stone-500 block mb-1.5 font-medium">Adresse exacte de livraison *</label>
                 <input 
                   type="text" 
                   name="address" 
@@ -181,31 +186,31 @@ export default function Checkout() {
                   placeholder="Rue, Bâtiment, Quartier..." 
                   value={formData.address} 
                   onChange={handleInputChange} 
-                  className="w-full bg-[#FBF9F5] border border-stone-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-stone-400 transition-colors" 
+                  className="w-full bg-white border border-[#ddd3c8] px-4 py-3 text-xs focus:outline-none focus:border-[#2e2a2b] transition-colors" 
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-stone-400 block mb-1.5 font-medium">Remarques (Optionnel)</label>
+                <label className="text-[11px] text-stone-500 block mb-1.5 font-medium">Remarques (Optionnel)</label>
                 <textarea 
                   name="notes" 
                   rows="2"
                   placeholder="Instructions particulières..." 
                   value={formData.notes} 
                   onChange={handleInputChange} 
-                  className="w-full bg-[#FBF9F5] border border-stone-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-stone-400 transition-colors" 
+                  className="w-full bg-white border border-[#ddd3c8] px-4 py-3 text-xs focus:outline-none focus:border-[#2e2a2b] transition-colors" 
                 />
               </div>
 
-              <button type="submit" disabled={isSubmitting} className="w-full bg-stone-900 text-white py-4 rounded-full text-xs font-medium uppercase tracking-widest hover:bg-stone-800 transition-all shadow-xs cursor-pointer disabled:opacity-50">
+              <button type="submit" disabled={isSubmitting} className="w-full bg-[#e9a3a0] text-white py-4  text-xs font-medium uppercase tracking-widest hover:brightness-105 transition-all cursor-pointer disabled:opacity-50">
                 {isSubmitting ? 'Validation...' : 'Confirmer la Commande'}
               </button>
             </form>
           </div>
 
           {/* RÉCAPITULATIF DU PANIER */}
-          <div className="lg:col-span-5 bg-white p-6 md:p-8 rounded-3xl border border-stone-200/60 shadow-xs space-y-6">
-            <h2 className="font-serif text-xl text-stone-900 pb-4 border-b border-stone-100">Récapitulatif</h2>
+          <div className="lg:col-span-5 bg-white p-6 md:p-8 border border-[#e3dcd3] space-y-6">
+            <h2 className="font-serif text-xl font-normal uppercase tracking-[0.04em] text-[#2e2a2b] pb-4 border-b border-[#e9e2d9]">Récapitulatif</h2>
 
             <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
               {cart.map((item, index) => {
@@ -214,12 +219,12 @@ export default function Checkout() {
                 const imageSource = getItemImage(item, index);
 
                 return (
-                  <div key={item.id || index} className="flex items-center gap-4 pb-4 border-b border-stone-100">
-                    <div className="w-16 h-16 bg-[#FBF9F5] rounded-xl border border-stone-200/60 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                  <div key={item.id || index} className="flex items-center gap-4 pb-4 border-b border-[#e9e2d9]">
+                    <div className="w-16 h-16 bg-[#f1ede7] border border-[#e3dcd3] flex items-center justify-center shrink-0 overflow-hidden">
                       <img 
                         src={imageSource} 
                         alt={item.name || 'Produit'} 
-                        className="w-full h-full object-cover rounded-lg"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -232,7 +237,7 @@ export default function Checkout() {
               })}
             </div>
 
-            <div className="border-t border-stone-100 pt-4 space-y-2">
+            <div className="border-t border-[#e9e2d9] pt-4 space-y-2">
               <div className="flex justify-between text-xs text-stone-500 font-light">
                 <span>Sous-total</span>
                 <span className="font-medium text-stone-800">{subtotal.toLocaleString()} DA</span>
@@ -245,7 +250,7 @@ export default function Checkout() {
                 </span>
               </div>
 
-              <div className="flex justify-between text-base font-medium text-stone-900 pt-3 border-t border-stone-100">
+              <div className="flex justify-between text-base font-medium text-stone-900 pt-3 border-t border-[#e9e2d9]">
                 <span>Total</span>
                 <span className="font-semibold text-lg">{grandTotal.toLocaleString()} DA</span>
               </div>
