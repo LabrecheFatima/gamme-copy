@@ -25,11 +25,11 @@ const icons = {
 };
 
 const items = [
-  { icon: "lotus", label: "Bien-être" },
-  { icon: "lamp", label: "Art Déco" },
-  { icon: "sprout", label: "Soins du Corps" },
-  { icon: "linen", label: "Maison & Art de la Table" },
-  { icon: "candle", label: "Bougies" },
+  { icon: "lotus", label: "Soins & Beauté" },
+  { icon: "lamp", label: "Senteur & Bien-etre" },
+  { icon: "sprout", label: "Maison & Déco" },
+  { icon: "linen", label: "Art de la Table" },
+  { icon: "candle", label: "Produit de beauté " },
 ];
 
 export default function HandcraftedBanner({
